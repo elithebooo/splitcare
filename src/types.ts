@@ -14,10 +14,10 @@ export interface CareExpense {
 	id: string
 	title: string
 	description: string
-	/** Decimal XLM string, e.g. "120" or "18.5". Used to prefill the total. */
-	suggestedAmount: string
+	/** Suggested amount in XLM. Used to prefill the total. */
+	suggestedAmount: number
 	icon: ExpenseIconKey
-	isCustom: boolean
+	isCustom?: boolean
 }
 
 export interface Member {

@@ -10,8 +10,8 @@ import { WalletCard } from "../components/WalletCard"
 import type { CareSplit } from "../hooks/useCareSplit"
 import type { UseWallet } from "../hooks/useWallet"
 import { isAmountLike, stroopsToStellarAmount } from "../lib/money"
-import { buildPaymentXdr, describeStellarError, isValidAddress, submitSignedXdr } from "../lib/stellar"
 import { signWithFreighter } from "../lib/freighter"
+import { buildPaymentXdr, describeStellarError, isValidAddress, submitSignedXdr } from "../lib/stellar"
 import { createId } from "../lib/id"
 import { TOTAL_BP } from "../lib/split"
 import type { PaymentPhase, Receipt } from "../types"
@@ -64,6 +64,8 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 		const list: Blocker[] = []
 		if (walletState.status !== "connected" || !walletState.address) {
 			list.push({ id: "wallet", label: "Connect your Freighter wallet to pay." })
+		} else if (!walletState.onTestnet) {
+			list.push({ id: "network", label: "Switch Freighter to Stellar Testnet before paying." })
 		} else if (!walletState.accountFunded) {
 			list.push({ id: "funded", label: "Fund your Testnet account before paying." })
 		}
@@ -103,9 +105,8 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 			setPhase("submitting")
 			const result = await submitSignedXdr(signedXdr)
 
-			// Stage 1: The Anticipation Window (builds dopamine via uncertainty)
 			setPhase("anticipating")
-			await new Promise((resolve) => setTimeout(resolve, 2500))
+			await new Promise((resolve) => setTimeout(resolve, 1500))
 
 			const receipt: Receipt = {
 				id: createId("rcpt"),
@@ -129,7 +130,7 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 			setErrorMessage(message)
 			const receipt: Receipt = {
 				id: createId("rcpt"),
-				outcome: "failed",
+				outcome: "failure",
 				errorMessage: message,
 				expenseTitle: selectedExpense?.title ?? "Custom expense",
 				totalXlm: stroopsToStellarAmount(totalStroops ?? 0n),
@@ -157,7 +158,7 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 				<span className="eyebrow">Payments</span>
 				<h1 className="page__title">Split a care expense</h1>
 				<p className="page__sub">
-					Pick an expense, split it however fits, then pay only your share in testnet XLM.
+					Pick an expense, adjust the split, then send your share in testnet XLM.
 				</p>
 			</div>
 

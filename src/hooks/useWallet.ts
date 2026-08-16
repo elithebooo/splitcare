@@ -135,3 +135,5 @@ export function useWallet() {
 
 	return { wallet, connect, disconnect, refresh, fundAccount, clearError }
 }
+
+export type UseWallet = ReturnType<typeof useWallet>

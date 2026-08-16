@@ -7,42 +7,41 @@ interface Props {
 const FEATURES = [
 	{
 		icon: Layers,
-		title: "Split fairly, not evenly by force",
-		text: "Shares start equal, but you can move any percentage up or down. The rest rebalance automatically so the total always lands on exactly 100%.",
+		title: "Split the bill the way people actually agreed",
+		text: "Start with an even split, then adjust any share. SplitCare keeps the total at 100% without turning it into spreadsheet work.",
 	},
 	{
 		icon: CreditCard,
-		title: "Pay only your share",
-		text: "No one fronts the whole bill. Every person sends their own portion straight from their own wallet.",
+		title: "Send one share, not the whole bill",
+		text: "Each person can pay their own part from Freighter. No one has to cover everything first and chase people later.",
 	},
 	{
 		icon: Shield,
-		title: "Built on Stellar Testnet",
-		text: "Every payment is a real Testnet transaction with a verifiable hash. Transparent, auditable, and free to try.",
+		title: "Real Testnet payments",
+		text: "Payments run on Stellar Testnet, so you can test the full flow and still get a transaction hash you can check.",
 	},
 	{
 		icon: User,
-		iconProps: undefined,
-		title: "Nothing leaves your browser",
-		text: "No accounts, no servers, no medical records. Your split, your wallet, your session only.",
+		title: "No sign-up, no records to upload",
+		text: "This demo does not ask for medical details or an account. The split lives in your browser session.",
 	},
 ]
 
 const STEPS = [
 	{
 		number: "01",
-		title: "Add the expense",
-		text: "Pick a care preset or add your own: title, note, amount, icon.",
+		title: "Choose the expense",
+		text: "Use a care preset or add a custom cost with a short note and amount.",
 	},
 	{
 		number: "02",
-		title: "Decide who covers what",
-		text: "Set how many people are splitting it and adjust each share as a percentage.",
+		title: "Set the split",
+		text: "Add the people involved, pick who is paying, and tune the percentages.",
 	},
 	{
 		number: "03",
-		title: "Pay your part",
-		text: "Connect Freighter and send only your portion in testnet XLM, with a receipt and hash.",
+		title: "Pay your share",
+		text: "Connect Freighter, confirm the payment, then keep the Testnet receipt hash.",
 	},
 ]
 
@@ -58,10 +57,10 @@ export function LandingPage({ onGetStarted }: Props) {
 					<nav className="landing-nav__links" aria-label="Sections">
 						<a href="#features">Features</a>
 						<a href="#how-it-works">How it works</a>
-						<a href="#trust">Security</a>
+						<a href="#trust">Privacy</a>
 					</nav>
 					<button type="button" className="btn btn--primary btn--sm" onClick={onGetStarted}>
-						Try Risk-Free
+						Open demo
 					</button>
 				</div>
 			</header>
@@ -71,30 +70,30 @@ export function LandingPage({ onGetStarted }: Props) {
 					<div className="hero-section__inner">
 						<span className="badge">
 							<span className="badge__dot" />
-							Used by 1,407 families on Stellar Testnet
+							Stellar Testnet demo · Freighter wallet
 						</span>
-						<h1 className="hero-section__title">You're splitting $1,200 in care bills between 4 people. Pay your exact share instantly.</h1>
+						<h1 className="hero-section__title">Split a care expense, then pay only your part.</h1>
 						<p className="hero-section__lede">
-							We calculate exact percentages, eliminate the awkward IOUs, and let everyone settle their portion directly on the blockchain. No math, just instant settlement.
+							SplitCare is for those small but sensitive shared costs: a clinic visit, a refill, a ride, a monthly care plan. Set the percentages, connect Freighter, and send your share on Stellar Testnet.
 						</p>
 						<div className="hero-section__actions">
 							<button type="button" className="btn btn--primary btn--lg" onClick={onGetStarted}>
-								Try Risk-Free on Testnet
+								Try the payment flow
 								<Bolt size={15} />
 							</button>
 							<a className="btn btn--secondary btn--lg" href="#how-it-works">
-								See how it works
+								See the steps
 							</a>
 						</div>
 						<ul className="hero-section__trust">
 							<li>
-								<Check size={13} /> No account required
+								<Check size={13} /> No SplitCare account
 							</li>
 							<li>
-								<Check size={13} /> Freighter wallet, self-custodied
+								<Check size={13} /> Testnet XLM only
 							</li>
 							<li>
-								<Check size={13} /> Test funds only, zero risk
+								<Check size={13} /> Verifiable transaction hash
 							</li>
 						</ul>
 					</div>
@@ -132,7 +131,7 @@ export function LandingPage({ onGetStarted }: Props) {
 				</section>
 
 				<section className="logos-strip">
-					<span>Built on</span>
+					<span>Built with</span>
 					<span className="logos-strip__item">Stellar Testnet</span>
 					<span className="logos-strip__item">Freighter</span>
 					<span className="logos-strip__item">Horizon</span>
@@ -141,7 +140,7 @@ export function LandingPage({ onGetStarted }: Props) {
 				<section className="section" id="features">
 					<div className="section__head">
 						<span className="eyebrow">Why SplitCare</span>
-						<h2 className="section__title">Everyone pays their own part, clearly.</h2>
+						<h2 className="section__title">Simple enough for a demo, careful enough for the use case.</h2>
 					</div>
 					<div className="feature-grid">
 						{FEATURES.map((feature) => {
@@ -162,7 +161,7 @@ export function LandingPage({ onGetStarted }: Props) {
 				<section className="section section--muted" id="how-it-works">
 					<div className="section__head">
 						<span className="eyebrow">How it works</span>
-						<h2 className="section__title">Three steps, one honest total.</h2>
+						<h2 className="section__title">A clear split, a clear payment, a clear receipt.</h2>
 					</div>
 					<div className="steps-grid">
 						{STEPS.map((step) => (
@@ -181,21 +180,19 @@ export function LandingPage({ onGetStarted }: Props) {
 							<Shield size={26} />
 						</div>
 						<div>
-							<h2 className="section__title">Nothing to trust but math and the ledger.</h2>
+							<h2 className="section__title">No medical data. No custody. Just the split.</h2>
 							<p className="trust-panel__text">
-								SplitCare never custodies funds and never asks for personal or medical information.
-								Every split is computed with exact integer math so shares always add up, and every
-								payment is a Testnet transaction you can verify independently on Stellar Expert.
+								SplitCare does not store accounts, private keys, or care records. It calculates the split in the browser, asks Freighter to sign, and sends the transaction to Stellar Testnet. The receipt hash is there so you can verify the result yourself.
 							</p>
 						</div>
 					</div>
 				</section>
 
 				<section className="cta-section">
-					<h2>Ready to split your first expense?</h2>
-					<p>Join 1,407 families already sharing care costs fairly.</p>
+					<h2>Try a split from start to finish.</h2>
+					<p>Use Testnet XLM, connect Freighter, and see the receipt flow without touching real funds.</p>
 					<button type="button" className="btn btn--primary btn--lg" onClick={onGetStarted}>
-						Try Risk-Free on Testnet
+						Open the demo
 					</button>
 				</section>
 			</main>

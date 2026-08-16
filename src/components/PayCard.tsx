@@ -29,7 +29,7 @@ const PHASE_LABEL: Record<PaymentPhase, string> = {
 	building: "Preparing transaction",
 	signing: "Waiting for Freighter",
 	submitting: "Submitting to Testnet",
-	anticipating: "Verifying on Testnet...",
+	anticipating: "Checking transaction",
 	done: "Pay my share",
 }
 
@@ -64,7 +64,7 @@ export function PayCard({
 					<span className="hero__unit">XLM</span>
 				</span>
 				<span className="hero__sub">
-					{payer?.name || "You"} · {expenseTitle} · {memberCount}{" "}
+					{payer?.name || "Selected payer"} · {expenseTitle} · {memberCount}{" "}
 					{memberCount === 1 ? "person" : "people"}
 				</span>
 			</div>
@@ -86,9 +86,9 @@ export function PayCard({
 					spellCheck={false}
 				/>
 				{destinationLooksWrong ? (
-					<span className="field__error">This doesn't look like a Stellar address (starts with G).</span>
+					<span className="field__error">This doesn't look like a Stellar address.</span>
 				) : (
-					<span className="field__hint">The Testnet account that should receive this payment.</span>
+					<span className="field__hint">Use a Stellar Testnet account address.</span>
 				)}
 			</label>
 
@@ -98,7 +98,7 @@ export function PayCard({
 					className="input"
 					value={note}
 					onChange={(e) => onNoteChange(e.target.value)}
-					placeholder="e.g. March care plan"
+					placeholder="Short note for this payment"
 					maxLength={28}
 				/>
 			</label>

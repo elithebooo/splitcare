@@ -40,8 +40,10 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 		}
 	}
 
-	async function shareReceipt() {
-		const text = `I just paid my share (${receipt.paidXlm} XLM) for ${receipt.expenseTitle} securely on the Stellar Testnet via SplitCare!`
+	async function copyReceiptText() {
+		const text = success
+			? `Payment sent on Stellar Testnet. Amount: ${receipt.paidXlm} XLM. Expense: ${receipt.expenseTitle}. Transaction: ${receipt.hash ?? "not available"}.`
+			: `Payment failed. Amount: ${receipt.paidXlm} XLM. Expense: ${receipt.expenseTitle}. Reason: ${receipt.errorMessage ?? "not available"}.`
 		try {
 			await navigator.clipboard.writeText(text)
 			setShared(true)
@@ -52,7 +54,7 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 	return (
 		<div className={`card ${success ? "animate-ceremony" : ""}`}>
 			<div className="card__head">
-				<h3 className="card__title">{success ? "Your Contribution Confirmed 🎉" : "Receipt"}</h3>
+				<h3 className="card__title">{success ? "Payment confirmed" : "Receipt"}</h3>
 				<button type="button" className="linkbtn" onClick={onReset}>
 					New payment
 				</button>
@@ -61,7 +63,7 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 			<div className={`banner ${success ? "banner--ok" : "banner--err"}`}>
 				{success ? <CheckCircle size={15} /> : <Alert size={15} />}
 				<span>
-					<strong>{success ? "Payment confirmed on Testnet" : "Payment did not go through"}</strong>{" "}
+					<strong>{success ? "Confirmed on Testnet" : "Payment did not go through"}</strong>{" "}
 					{success
 						? `${receipt.paidXlm} XLM sent for ${receipt.expenseTitle}.`
 						: (receipt.errorMessage ?? "The transaction was not submitted. Nothing was sent.")}
@@ -113,14 +115,14 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 						View on Stellar Expert
 						<ArrowUpRight size={13} />
 					</a>
-					
-					<div style={{ marginTop: 12 }}>
-						<button type="button" className="btn btn--secondary btn--block" onClick={() => void shareReceipt()}>
-							{shared ? "Copied to clipboard!" : "Share your achievement"}
-						</button>
-					</div>
 				</>
 			) : null}
+
+			<div style={{ marginTop: 12 }}>
+				<button type="button" className="btn btn--secondary btn--block" onClick={() => void copyReceiptText()}>
+					{shared ? "Copied" : "Copy receipt details"}
+				</button>
+			</div>
 		</div>
 	)
 }

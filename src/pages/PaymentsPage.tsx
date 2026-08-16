@@ -92,11 +92,12 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 		setPhase("building")
 		try {
 			const amount = stroopsToStellarAmount(payerAmountStroops)
+			const cleanedMemo = memo.trim()
 			const xdr = await buildPaymentXdr({
 				source: walletState.address,
 				destination: recipient,
 				amount,
-				memo: memo.trim() ? memo.trim() : undefined,
+				memo: cleanedMemo || undefined,
 			})
 
 			setPhase("signing")
@@ -106,7 +107,7 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 			const result = await submitSignedXdr(signedXdr)
 
 			setPhase("anticipating")
-			await new Promise((resolve) => setTimeout(resolve, 1500))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			const receipt: Receipt = {
 				id: createId("rcpt"),
@@ -115,10 +116,12 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 				expenseTitle: selectedExpense?.title ?? "Custom expense",
 				totalXlm: stroopsToStellarAmount(totalStroops ?? 0n),
 				memberCount: members.length,
-				payerName: payer?.name || `Member ${payerIndex + 1}`,
+				payerName: payer?.name || `Person ${payerIndex + 1}`,
 				payerPercent: (payer ? payer.bp / 100 : 0).toString(),
 				paidXlm: amount,
+				source: walletState.address,
 				destination: recipient,
+				memo: cleanedMemo || undefined,
 				createdAt: new Date().toISOString(),
 			}
 			setReceipts((prev) => [receipt, ...prev].slice(0, 20))
@@ -135,10 +138,12 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 				expenseTitle: selectedExpense?.title ?? "Custom expense",
 				totalXlm: stroopsToStellarAmount(totalStroops ?? 0n),
 				memberCount: members.length,
-				payerName: payer?.name || `Member ${payerIndex + 1}`,
+				payerName: payer?.name || `Person ${payerIndex + 1}`,
 				payerPercent: (payer ? payer.bp / 100 : 0).toString(),
 				paidXlm: stroopsToStellarAmount(payerAmountStroops),
+				source: walletState.address,
 				destination: recipient,
+				memo: memo.trim() || undefined,
 				createdAt: new Date().toISOString(),
 			}
 			setReceipts((prev) => [receipt, ...prev].slice(0, 20))

@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { shortenAddress } from "../lib/money"
-import { explorerTxUrl } from "../lib/stellar"
+import { explorerAccountUrl, explorerTxUrl } from "../lib/stellar"
 import type { Receipt } from "../types"
 import { Alert, ArrowUpRight, Check, CheckCircle, Copy } from "./Icons"
 
@@ -42,8 +42,8 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 
 	async function copyReceiptText() {
 		const text = success
-			? `Payment sent on Stellar Testnet. Amount: ${receipt.paidXlm} XLM. Expense: ${receipt.expenseTitle}. Transaction: ${receipt.hash ?? "not available"}.`
-			: `Payment failed. Amount: ${receipt.paidXlm} XLM. Expense: ${receipt.expenseTitle}. Reason: ${receipt.errorMessage ?? "not available"}.`
+			? `SplitCare Testnet payment\nAmount: ${receipt.paidXlm} XLM\nSource: ${receipt.source}\nDestination: ${receipt.destination}\nTransaction: ${receipt.hash ?? "not available"}`
+			: `SplitCare Testnet payment failed\nAmount: ${receipt.paidXlm} XLM\nDestination: ${receipt.destination}\nReason: ${receipt.errorMessage ?? "not available"}`
 		try {
 			await navigator.clipboard.writeText(text)
 			setShared(true)
@@ -63,7 +63,7 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 			<div className={`banner ${success ? "banner--ok" : "banner--err"}`}>
 				{success ? <CheckCircle size={15} /> : <Alert size={15} />}
 				<span>
-					<strong>{success ? "Confirmed on Testnet" : "Payment did not go through"}</strong>{" "}
+					<strong>{success ? "Confirmed on Stellar Testnet" : "Payment did not go through"}</strong>{" "}
 					{success
 						? `${receipt.paidXlm} XLM sent for ${receipt.expenseTitle}.`
 						: (receipt.errorMessage ?? "The transaction was not submitted. Nothing was sent.")}
@@ -88,9 +88,23 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 					</dd>
 				</div>
 				<div className="kv__row">
-					<dt className="kv__k">Sent to</dt>
-					<dd className="kv__v mono">{shortenAddress(receipt.destination, 6, 6)}</dd>
+					<dt className="kv__k">From</dt>
+					<dd className="kv__v mono">
+						<a href={explorerAccountUrl(receipt.source)} target="_blank" rel="noreferrer">{shortenAddress(receipt.source, 6, 6)}</a>
+					</dd>
 				</div>
+				<div className="kv__row">
+					<dt className="kv__k">To</dt>
+					<dd className="kv__v mono">
+						<a href={explorerAccountUrl(receipt.destination)} target="_blank" rel="noreferrer">{shortenAddress(receipt.destination, 6, 6)}</a>
+					</dd>
+				</div>
+				{receipt.memo ? (
+					<div className="kv__row">
+						<dt className="kv__k">Memo</dt>
+						<dd className="kv__v">{receipt.memo}</dd>
+					</div>
+				) : null}
 				<div className="kv__row">
 					<dt className="kv__k">When</dt>
 					<dd className="kv__v">{formatWhen(receipt.createdAt)}</dd>
@@ -112,7 +126,7 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 						</button>
 					</div>
 					<a className="explorer-link" href={explorerTxUrl(receipt.hash)} target="_blank" rel="noreferrer">
-						View on Stellar Expert
+						View transaction on Stellar Expert
 						<ArrowUpRight size={13} />
 					</a>
 				</>

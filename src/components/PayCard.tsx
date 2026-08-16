@@ -1,6 +1,6 @@
 import { formatXlm } from "../lib/money"
 import type { Member, PaymentPhase } from "../types"
-import { Alert, Bolt } from "./Icons"
+import { Alert, ArrowUpRight, Bolt } from "./Icons"
 
 export interface Blocker {
 	id: string
@@ -86,10 +86,14 @@ export function PayCard({
 					spellCheck={false}
 				/>
 				{destinationLooksWrong ? (
-					<span className="field__error">This doesn't look like a Stellar address.</span>
+					<span className="field__error">This doesn't look like a Stellar public key.</span>
 				) : (
-					<span className="field__hint">Use a Stellar Testnet account address.</span>
+					<span className="field__hint">Use a funded Stellar Testnet account. New accounts must exist before receiving payment.</span>
 				)}
+				<a className="field__link" href="https://laboratory.stellar.org/#account-creator?network=test" target="_blank" rel="noreferrer">
+					Create a Testnet destination
+					<ArrowUpRight size={12} />
+				</a>
 			</label>
 
 			<label className="field pay-field">

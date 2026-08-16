@@ -78,6 +78,8 @@ export interface Receipt {
 	payerName: string
 	payerPercent: string
 	paidXlm: string
+	source: string
 	destination: string
+	memo?: string
 	createdAt: string
 }

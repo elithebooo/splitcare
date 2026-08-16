@@ -1,7 +1,9 @@
-import { addressColors, shortenAddress } from "../lib/money"
-import { explorerAccountUrl } from "../lib/stellar"
+import { useState } from "react"
+
+import { addressColors, formatXlm, shortenAddress } from "../lib/money"
+import { explorerAccountUrl, isValidAddress, loadNativeBalance } from "../lib/stellar"
 import type { WalletState } from "../types"
-import { ArrowUpRight, Power, Shield, Wallet } from "../components/Icons"
+import { ArrowUpRight, Power, Refresh, Shield, Wallet } from "../components/Icons"
 
 interface Props {
 	wallet: WalletState
@@ -9,9 +11,40 @@ interface Props {
 	onDisconnect: () => void
 }
 
+type BalanceLookup =
+	| { status: "idle"; message: null; stroops: null; funded: null }
+	| { status: "loading"; message: string; stroops: null; funded: null }
+	| { status: "success"; message: string; stroops: bigint; funded: true }
+	| { status: "empty"; message: string; stroops: 0n; funded: false }
+	| { status: "error"; message: string; stroops: null; funded: null }
+
+const INITIAL_LOOKUP: BalanceLookup = { status: "idle", message: null, stroops: null, funded: null }
+
 export function AccountPage({ wallet, onConnect, onDisconnect }: Props) {
 	const connected = wallet.status === "connected" && wallet.address
 	const colors = addressColors(wallet.address ?? "splitcare")
+	const [lookupAddress, setLookupAddress] = useState("")
+	const [lookup, setLookup] = useState<BalanceLookup>(INITIAL_LOOKUP)
+
+	async function handleLookup() {
+		const address = lookupAddress.trim()
+		if (!isValidAddress(address)) {
+			setLookup({ status: "error", message: "Enter a valid Stellar public key that starts with G.", stroops: null, funded: null })
+			return
+		}
+
+		setLookup({ status: "loading", message: "Checking Stellar Testnet balance…", stroops: null, funded: null })
+		try {
+			const result = await loadNativeBalance(address)
+			if (!result.funded) {
+				setLookup({ status: "empty", message: "This account does not exist on Stellar Testnet yet.", stroops: 0n, funded: false })
+				return
+			}
+			setLookup({ status: "success", message: "Balance found on Stellar Testnet.", stroops: result.stroops, funded: true })
+		} catch {
+			setLookup({ status: "error", message: "Could not read this Testnet account right now. Try again shortly.", stroops: null, funded: null })
+		}
+	}
 
 	return (
 		<div className="page">
@@ -39,6 +72,12 @@ export function AccountPage({ wallet, onConnect, onDisconnect }: Props) {
 								<span className="wallet-row__meta">
 									<span className="wallet-row__addr mono">{shortenAddress(wallet.address ?? "", 8, 8)}</span>
 									<span className="wallet-row__sub">{wallet.networkLabel ?? "Stellar Testnet"}</span>
+								</span>
+							</div>
+							<div className="balance">
+								<span className="field__label">Connected balance</span>
+								<span className="balance__value num">
+									{wallet.loadingBalance ? "—" : formatXlm(wallet.balanceStroops ?? 0n)} XLM
 								</span>
 							</div>
 							<div className="wallet-actions">
@@ -87,6 +126,46 @@ export function AccountPage({ wallet, onConnect, onDisconnect }: Props) {
 						</li>
 					</ul>
 				</div>
+			</div>
+
+			<div className="card">
+				<div className="card__head">
+					<h3 className="card__title">Testnet balance checker</h3>
+				</div>
+				<p className="field__hint">Paste any Stellar Testnet public key to verify that SplitCare can read balances beyond the connected wallet.</p>
+				<label className="field">
+					<span className="field__label">Public key</span>
+					<input
+						className="input input--mono"
+						value={lookupAddress}
+						onChange={(event) => {
+							setLookupAddress(event.target.value.trim())
+							setLookup(INITIAL_LOOKUP)
+						}}
+						placeholder="G..."
+						spellCheck={false}
+					/>
+				</label>
+				<div className="wallet-actions">
+					<button type="button" className="btn btn--secondary" onClick={() => void handleLookup()} disabled={lookup.status === "loading"}>
+						<Refresh size={14} />
+						{lookup.status === "loading" ? "Checking" : "Check balance"}
+					</button>
+					{isValidAddress(lookupAddress) ? (
+						<a className="linkbtn" href={explorerAccountUrl(lookupAddress)} target="_blank" rel="noreferrer">
+							View on Stellar Expert
+							<ArrowUpRight size={12} />
+						</a>
+					) : null}
+				</div>
+				{lookup.message ? (
+					<div className={`banner ${lookup.status === "error" ? "banner--err" : lookup.status === "success" ? "banner--ok" : "banner--warn"}`}>
+						<span>
+							{lookup.message}
+							{lookup.status === "success" ? ` Balance: ${formatXlm(lookup.stroops)} XLM.` : ""}
+						</span>
+					</div>
+				) : null}
 			</div>
 		</div>
 	)

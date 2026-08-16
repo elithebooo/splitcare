@@ -71,7 +71,8 @@
 	opacity: 0.55;
 }
 
-.linkbtn {
+.linkbtn,
+.field__link {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -80,7 +81,8 @@
 	font-size: 13px;
 }
 
-.linkbtn:hover {
+.linkbtn:hover,
+.field__link:hover {
 	text-decoration: none;
 	color: var(--accent-hover);
 }
@@ -1014,8 +1016,7 @@
 .blocker {
 	font-size: 12.5px;
 	color: var(--ink-3);
-	padding-left: 14px;
-	position: relative;
+	padding-left: 14px;	position: relative;
 }
 
 .blocker::before {
@@ -1721,6 +1722,13 @@
 		grid-template-areas: "swatch name" "swatch pct" "swatch payer" "swatch amt";
 		row-gap: 6px;
 	}
+
+	.member__swatch { grid-area: swatch; }
+	.member__name { grid-area: name; }
+	.member__pct { grid-area: pct; }
+	.member__payer { grid-area: payer; width: fit-content; }
+	.member__lock { grid-area: lock; }
+	.member__amt { grid-area: amt; text-align: left; }
 
 	.newexpense__grid {
 		grid-template-columns: 1fr;

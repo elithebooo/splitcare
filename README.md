@@ -8,6 +8,10 @@ The White Belt goal is to demonstrate the core Stellar wallet flow: connect a wa
 
 https://splitcare-hvgs.vercel.app
 
+## Demo Recording
+
+![SplitCare demo recording](./screenshots/splitcare-demo.webp)
+
 ## White Belt Requirements Checklist
 
 | Requirement | Status | Where it is implemented |
@@ -106,13 +110,14 @@ npm run build
 
 ## Included Screenshots
 
-The `screenshots/` folder includes the original White Belt proof screenshots:
+The `screenshots/` folder includes the demo recording and the original White Belt proof screenshots:
 
-1. Connect wallet
-2. Wallet balance
-3. Payment flow
-4. Freighter confirmation
-5. Transaction receipt
+1. Demo recording
+2. Connect wallet
+3. Wallet balance
+4. Payment flow
+5. Freighter confirmation
+6. Transaction receipt
 
 For final resubmission, the live Vercel demo is the source of truth. If screenshots are requested in the submission form, use fresh captures from the current deployed app, especially the updated receipt and Account balance checker.
 

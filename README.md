@@ -6,7 +6,7 @@ The White Belt goal is to demonstrate the core Stellar wallet flow: connect a wa
 
 ## Live Demo
 
-The project is deployed on Vercel. Add the final Vercel URL in the Rise In submission form and, if desired, paste it here before the final GitHub submission screenshot pass.
+https://splitcare-hvgs.vercel.app
 
 ## White Belt Requirements Checklist
 
@@ -38,7 +38,7 @@ The project is deployed on Vercel. Add the final Vercel URL in the Rise In submi
 
 ## Demo Script for Judges
 
-1. Open the live demo.
+1. Open the live demo: https://splitcare-hvgs.vercel.app
 2. Install Freighter if needed: <https://www.freighter.app/>
 3. Switch Freighter to **Stellar Testnet**.
 4. Connect Freighter in SplitCare.

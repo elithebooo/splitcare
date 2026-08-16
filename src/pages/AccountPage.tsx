@@ -17,17 +17,16 @@ export function AccountPage({ wallet, onConnect, onDisconnect }: Props) {
 		<div className="page">
 			<div className="page__head">
 				<span className="eyebrow">Account</span>
-				<h1 className="page__title">Your login &amp; identity</h1>
+				<h1 className="page__title">Wallet connection</h1>
 				<p className="page__sub">
-					SplitCare has no separate account system. Your Freighter wallet is your login on Stellar
-					Testnet.
+					SplitCare has no username, password, or profile. Freighter provides the wallet address used for this Testnet session.
 				</p>
 			</div>
 
 			<div className="account-grid">
 				<div className="card card--accent">
 					<div className="card__head">
-						<h3 className="card__title">Signed-in wallet</h3>
+						<h3 className="card__title">Connected wallet</h3>
 					</div>
 
 					{connected ? (
@@ -54,14 +53,14 @@ export function AccountPage({ wallet, onConnect, onDisconnect }: Props) {
 								</a>
 								<button type="button" className="btn btn--quiet btn--sm" onClick={onDisconnect}>
 									<Power size={13} />
-									Disconnect
+									Disconnect locally
 								</button>
 							</div>
 						</>
 					) : (
 						<div className="wallet-empty">
 							<Wallet size={22} />
-							<p>You're not connected yet. Connect Freighter to sign in with your Testnet wallet.</p>
+							<p>Connect Freighter to use the active Testnet wallet in your browser.</p>
 							<button type="button" className="btn btn--primary btn--block" onClick={onConnect}>
 								Connect wallet
 							</button>
@@ -71,20 +70,20 @@ export function AccountPage({ wallet, onConnect, onDisconnect }: Props) {
 
 				<div className="card">
 					<div className="card__head">
-						<h3 className="card__title">How sign-in works</h3>
+						<h3 className="card__title">How connection works</h3>
 					</div>
 					<ul className="info-list">
 						<li>
 							<Shield size={15} />
-							<span>Your keys never leave Freighter. SplitCare only ever requests a signature.</span>
+							<span>Your keys stay in Freighter. SplitCare only asks Freighter to sign a transaction.</span>
 						</li>
 						<li>
 							<Shield size={15} />
-							<span>There is no password, email, or profile stored anywhere by SplitCare.</span>
+							<span>SplitCare does not store an email, password, profile, or medical record.</span>
 						</li>
 						<li>
 							<Shield size={15} />
-							<span>Disconnecting simply forgets the wallet for this browser tab.</span>
+							<span>Disconnecting clears this app's local state. To use another wallet, switch accounts or remove this site in Freighter.</span>
 						</li>
 					</ul>
 				</div>

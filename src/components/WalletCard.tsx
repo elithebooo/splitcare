@@ -1,7 +1,7 @@
 import { addressColors, formatXlm, shortenAddress } from "../lib/money"
 import { explorerAccountUrl } from "../lib/stellar"
 import type { WalletState } from "../types"
-import { Alert, ArrowUpRight, Copy, Power, Refresh, Wallet } from "./Icons"
+import { Alert, ArrowUpRight, Power, Refresh, Wallet } from "./Icons"
 
 interface Props {
 	wallet: WalletState

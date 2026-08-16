@@ -50,6 +50,15 @@ export interface WalletState {
 	error: string | null
 }
 
+export type ThemePreference = "light" | "dark" | "system"
+export type PrecisionPreference = "compact" | "full"
+
+export interface SettingsState {
+	theme: ThemePreference
+	precision: PrecisionPreference
+	notifications: boolean
+}
+
 export type PaymentPhase =
 	| "idle"
 	| "building"

@@ -44,15 +44,15 @@ export function useSettings() {
 	}, [settings.theme])
 
 	const setTheme = useCallback((theme: ThemePreference) => {
-		setSettings((current) => ({ ...current, theme }))
+		setSettings((current: SettingsState) => ({ ...current, theme }))
 	}, [])
 
 	const setPrecision = useCallback((precision: PrecisionPreference) => {
-		setSettings((current) => ({ ...current, precision }))
+		setSettings((current: SettingsState) => ({ ...current, precision }))
 	}, [])
 
 	const setNotifications = useCallback((notifications: boolean) => {
-		setSettings((current) => ({ ...current, notifications }))
+		setSettings((current: SettingsState) => ({ ...current, notifications }))
 	}, [])
 
 	const resetSettings = useCallback(() => {
@@ -61,3 +61,5 @@ export function useSettings() {
 
 	return { settings, setTheme, setPrecision, setNotifications, resetSettings }
 }
+
+export type UseSettings = ReturnType<typeof useSettings>

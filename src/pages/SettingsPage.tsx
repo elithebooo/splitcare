@@ -1,5 +1,5 @@
 import type { PrecisionPreference, SettingsState, ThemePreference } from "../types"
-import { Bolt, Check, Laptop, Moon, Refresh, Sun } from "../components/Icons"
+import { Bolt, Laptop, Moon, Refresh, Sun } from "../components/Icons"
 
 interface Props {
 	settings: SettingsState

@@ -48,8 +48,9 @@ function toWalletError(error: unknown): WalletError {
 
 export async function isFreighterInstalled(): Promise<boolean> {
 	try {
-		const result = await isConnected()
-		return unwrap(result)
+		const result = unwrap(await isConnected()) as unknown
+		if (typeof result === "boolean") return result
+		return Boolean((result as { isConnected?: boolean }).isConnected)
 	} catch {
 		return false
 	}
@@ -57,8 +58,9 @@ export async function isFreighterInstalled(): Promise<boolean> {
 
 export async function isAlreadyAuthorized(): Promise<boolean> {
 	try {
-		const result = await isAllowed()
-		return unwrap(result)
+		const result = unwrap(await isAllowed()) as unknown
+		if (typeof result === "boolean") return result
+		return Boolean((result as { isAllowed?: boolean }).isAllowed)
 	} catch {
 		return false
 	}

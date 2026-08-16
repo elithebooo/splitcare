@@ -22,7 +22,7 @@ export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund 
 				</div>
 				<div className="wallet-empty">
 					<Wallet size={22} />
-					<p>Connect Freighter on Stellar Testnet to see your balance and pay your share.</p>
+					<p>Connect Freighter on Stellar Testnet to see your balance and send the selected share.</p>
 					<button
 						type="button"
 						className="btn btn--primary btn--block"
@@ -31,6 +31,7 @@ export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund 
 					>
 						{wallet.status === "connecting" ? "Connecting…" : "Connect wallet"}
 					</button>
+					<p className="fineprint">Freighter may reconnect a previously approved wallet. Switch accounts in Freighter first if needed.</p>
 					{wallet.error ? (
 						<div className="banner banner--warn">
 							<Alert size={14} />
@@ -59,7 +60,7 @@ export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund 
 		<div className="card card--accent">
 			<div className="card__head">
 				<h3 className="card__title">Wallet</h3>
-				<button type="button" className="iconbtn" onClick={onDisconnect} aria-label="Disconnect" title="Disconnect">
+				<button type="button" className="iconbtn" onClick={onDisconnect} aria-label="Disconnect locally" title="Disconnect locally">
 					<Power size={14} />
 				</button>
 			</div>
@@ -95,6 +96,8 @@ export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund 
 					<span>{wallet.error}</span>
 				</div>
 			) : null}
+
+			<p className="fineprint">Disconnect clears SplitCare only. Freighter keeps site permissions until you remove them there.</p>
 
 			<div className="wallet-actions">
 				{!wallet.accountFunded ? (

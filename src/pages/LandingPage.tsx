@@ -101,30 +101,30 @@ export function LandingPage({ onGetStarted }: Props) {
 					<div className="hero-preview" aria-hidden="true">
 						<div className="hero-preview__card">
 							<div className="hero-preview__row">
-								<span>Monthly care plan</span>
-								<span className="num">120.00 XLM</span>
+								<span>Choose an expense</span>
+								<span className="num">Enter total</span>
 							</div>
 							<div className="hero-preview__bar">
-								<span style={{ width: "50%", background: "var(--seg-1)" }} />
-								<span style={{ width: "30%", background: "var(--seg-2)" }} />
-								<span style={{ width: "20%", background: "var(--seg-3)" }} />
+								<span style={{ width: "40%", background: "var(--seg-1)" }} />
+								<span style={{ width: "35%", background: "var(--seg-2)" }} />
+								<span style={{ width: "25%", background: "var(--seg-3)" }} />
 							</div>
 							<div className="hero-preview__list">
 								<div className="hero-preview__item">
 									<span className="hero-preview__swatch" style={{ background: "var(--seg-1)" }} />
-									You · 50%<span className="num">60.00 XLM</span>
+									Add people<span className="num">Set shares</span>
 								</div>
 								<div className="hero-preview__item">
 									<span className="hero-preview__swatch" style={{ background: "var(--seg-2)" }} />
-									Sara · 30%<span className="num">36.00 XLM</span>
+									Pick payer<span className="num">Review amount</span>
 								</div>
 								<div className="hero-preview__item">
 									<span className="hero-preview__swatch" style={{ background: "var(--seg-3)" }} />
-									Uncle Reza · 20%<span className="num">24.00 XLM</span>
+									Confirm payment<span className="num">Get receipt</span>
 								</div>
 							</div>
 							<button type="button" className="btn btn--primary btn--block" disabled>
-								Pay my share · 60.00 XLM
+								Open the demo to enter your own split
 							</button>
 						</div>
 					</div>

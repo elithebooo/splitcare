@@ -104,18 +104,17 @@ npm run typecheck
 npm run build
 ```
 
-## Screenshots to Include Before Final Submission
+## Included Screenshots
 
-Update the `screenshots/` folder with fresh screenshots from the deployed app:
+The `screenshots/` folder includes the original White Belt proof screenshots:
 
-1. Landing page
-2. Freighter connect prompt
-3. Wallet connected with Testnet balance
-4. Account page balance checker
-5. Split/payment form with destination address
-6. Freighter signature confirmation
-7. Successful receipt with transaction hash
-8. Stellar Expert transaction page
+1. Connect wallet
+2. Wallet balance
+3. Payment flow
+4. Freighter confirmation
+5. Transaction receipt
+
+For final resubmission, the live Vercel demo is the source of truth. If screenshots are requested in the submission form, use fresh captures from the current deployed app, especially the updated receipt and Account balance checker.
 
 ## Known Limitations
 

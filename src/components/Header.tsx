@@ -60,7 +60,7 @@ export function Header({ wallet, currentPath, onNavigate, onConnect, onDisconnec
 				</span>
 
 				{connected ? (
-					<button type="button" className="wallet-pill" onClick={onDisconnect} title="Disconnect">
+					<button type="button" className="wallet-pill" onClick={onDisconnect} title="Disconnect locally">
 						<span className="wallet-pill__addr">{shortenAddress(wallet.address ?? "")}</span>
 						<Power size={14} />
 					</button>
@@ -72,7 +72,7 @@ export function Header({ wallet, currentPath, onNavigate, onConnect, onDisconnec
 			</div>
 
 			<div className="header__notice">
-				Testnet demo. SplitCare moves test XLM only. No real money, no medical records, and no data leaves your browser.
+				Testnet demo. SplitCare moves test XLM only. Wallet actions are handled by Freighter and transactions are submitted to Stellar Testnet.
 			</div>
 		</header>
 	)

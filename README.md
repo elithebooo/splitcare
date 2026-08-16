@@ -6,11 +6,7 @@ The White Belt goal is to demonstrate the core Stellar wallet flow: connect a wa
 
 ## Live Demo
 
-Add the Vercel deployment URL here before submitting:
-
-```text
-https://YOUR-VERCEL-URL.vercel.app
-```
+The project is deployed on Vercel. Add the final Vercel URL in the Rise In submission form and, if desired, paste it here before the final GitHub submission screenshot pass.
 
 ## White Belt Requirements Checklist
 
@@ -19,7 +15,7 @@ https://YOUR-VERCEL-URL.vercel.app
 | Connect a Stellar wallet | ✅ | Freighter connect flow in `src/lib/freighter.ts` and wallet UI |
 | Read the connected public key | ✅ | `requestAccess()` / `getAddress()` in `src/lib/freighter.ts` |
 | Enforce Stellar Testnet | ✅ | Network check in `useWallet.ts` and payment blockers |
-| Fetch and display XLM balance | ✅ | `loadNativeBalance()` in `src/lib/stellar.ts` and `WalletCard.tsx` |
+| Fetch and display XLM balance | ✅ | `loadNativeBalance()` in `src/lib/stellar.ts`, `WalletCard.tsx`, and Account balance checker |
 | Help fund a Testnet account | ✅ | Friendbot helper in `src/lib/stellar.ts` |
 | Build a payment transaction | ✅ | `buildPaymentXdr()` in `src/lib/stellar.ts` |
 | Sign with Freighter | ✅ | `signWithFreighter()` in `src/lib/freighter.ts` |
@@ -32,6 +28,7 @@ https://YOUR-VERCEL-URL.vercel.app
 - Connects to the Freighter browser wallet.
 - Checks that the wallet is on Stellar Testnet.
 - Loads and displays the wallet's native XLM balance.
+- Checks the balance of any Stellar Testnet public key from the Account page.
 - Lets the user select or create a care-related expense.
 - Splits the total by equal shares or custom percentages.
 - Builds a Stellar Testnet XLM payment for the selected payer's share.
@@ -53,6 +50,7 @@ https://YOUR-VERCEL-URL.vercel.app
 9. Click **Pay my share**.
 10. Confirm the transaction in Freighter.
 11. Check the receipt and open the Stellar Expert transaction link.
+12. Optional: open the Account page and use the Testnet balance checker with any public key.
 
 ## Important Testnet Notes
 
@@ -113,10 +111,11 @@ Update the `screenshots/` folder with fresh screenshots from the deployed app:
 1. Landing page
 2. Freighter connect prompt
 3. Wallet connected with Testnet balance
-4. Split/payment form with destination address
-5. Freighter signature confirmation
-6. Successful receipt with transaction hash
-7. Stellar Expert transaction page
+4. Account page balance checker
+5. Split/payment form with destination address
+6. Freighter signature confirmation
+7. Successful receipt with transaction hash
+8. Stellar Expert transaction page
 
 ## Known Limitations
 
@@ -128,6 +127,6 @@ Update the `screenshots/` folder with fresh screenshots from the deployed app:
 ## Future Improvements
 
 - Add multi-wallet support for Yellow Belt.
-- Add a standalone public address balance checker.
 - Persist optional local payment history.
 - Add deeper transaction status syncing after submission.
+- Add real-time event synchronization in the next belt level.

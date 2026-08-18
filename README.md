@@ -20,7 +20,7 @@ https://splitcare-hvgs.vercel.app
 
 ## Demo Recording
 
-![SplitCare demo recording](./screenshots/splitcare-demo.webp)
+![SplitCare demo recording](./screenshots/splitcare-demo.gif)
 
 ## Main Flow
 
@@ -122,7 +122,7 @@ screenshots/2_wallet_balance.png
 screenshots/3_pay_share.png
 screenshots/4_freighter_confirm.png
 screenshots/5_receipt.png
-screenshots/splitcare-demo.webp
+screenshots/splitcare-demo.gif
 ```
 
 ## Current Limitations

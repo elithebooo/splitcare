@@ -2,7 +2,7 @@ import {
 	StellarWalletsKit,
 	WalletNetwork,
 	allowAllModules,
-} from "@creit-tech/stellar-wallets-kit"
+} from "@creit.tech/stellar-wallets-kit"
 import { Networks } from "@stellar/stellar-sdk"
 
 import { AppError, toAppError } from "./errors"

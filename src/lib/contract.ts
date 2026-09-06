@@ -268,23 +268,21 @@ export interface EventsPage {
 /**
  * Fetches contract events. Without a cursor it reads a recent ledger window;
  * with a cursor it returns only events after that point (used for polling).
- * Note: stellar-sdk v13 takes cursor/limit at the top level of GetEventsRequest.
+ * Note: GetEventsRequest is a discriminated union in the SDK — pass either a
+ * cursor or a startLedger, never both.
  */
 export async function fetchContractEvents(options: { cursor?: string | null } = {}): Promise<EventsPage> {
 	requireContract()
 
-	let startLedger: number | undefined
-	if (!options.cursor) {
-		const latest = await sorobanServer.getLatestLedger()
-		startLedger = Math.max(1, latest.sequence - EVENT_WINDOW_LEDGERS)
-	}
+	const filters: rpc.Api.EventFilter[] = [{ type: "contract", contractIds: [CONTRACT_ID] }]
 
-	const response = await sorobanServer.getEvents({
-		filters: [{ type: "contract", contractIds: [CONTRACT_ID] }],
-		limit: EVENT_PAGE_LIMIT,
-		...(startLedger !== undefined ? { startLedger } : {}),
-		...(options.cursor ? { cursor: options.cursor } : {}),
-	})
+	const response = options.cursor
+		? await sorobanServer.getEvents({ filters, cursor: options.cursor, limit: EVENT_PAGE_LIMIT })
+		: await sorobanServer.getEvents({
+				filters,
+				startLedger: Math.max(1, (await sorobanServer.getLatestLedger()).sequence - EVENT_WINDOW_LEDGERS),
+				limit: EVENT_PAGE_LIMIT,
+			})
 
 	const events: ContractEventInfo[] = []
 	for (const event of response.events) {

@@ -1,0 +1,66 @@
+name: Frontend build check
+
+on:
+  push:
+    branches:
+      - level-2-soroban
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        id: install
+        run: |
+          set +e
+          npm install --legacy-peer-deps > /tmp/install.log 2>&1
+          echo "install_exit=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Build frontend
+        id: build
+        run: |
+          set +e
+          npm run build > /tmp/build.log 2>&1
+          echo "build_exit=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Comment results on the PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTALL_EXIT: ${{ steps.install.outputs.install_exit }}
+          BUILD_EXIT: ${{ steps.build.outputs.build_exit }}
+        run: |
+          {
+            echo "### Frontend CI check — install exit: $INSTALL_EXIT, build exit: $BUILD_EXIT"
+            echo ""
+            echo "**npm install --legacy-peer-deps (last 40 lines)**"
+            echo '```'
+            tail -n 40 /tmp/install.log
+            echo '```'
+            echo ""
+            echo "**npm run build (last 60 lines)**"
+            echo '```'
+            tail -n 60 /tmp/build.log
+            echo '```'
+          } > /tmp/comment.md
+          gh pr comment 1 --repo elithebooo/splitcare --body-file /tmp/comment.md
+
+      - name: Conclude
+        if: always()
+        run: |
+          if [ "${{ steps.install.outputs.install_exit }}" != "0" ] || [ "${{ steps.build.outputs.build_exit }}" != "0" ]; then
+            exit 1
+          fi

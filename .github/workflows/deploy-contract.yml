@@ -1,0 +1,53 @@
+name: Deploy SplitCare contract (Testnet)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Install stellar-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: stellar-cli
+
+      - name: Run contract tests
+        run: cd contracts/splitcare && cargo test
+
+      - name: Build contract
+        run: cd contracts/splitcare && stellar contract build
+
+      - name: Create and fund deployer identity (testnet, Friendbot)
+        run: stellar keys generate deployer --network testnet --fund
+
+      - name: Deploy to Testnet
+        id: deploy
+        run: |
+          WASM_PATH="$(find . -name 'splitcare.wasm' -path '*release*' | head -n 1)"
+          echo "wasm: $WASM_PATH"
+          CONTRACT_ID="$(stellar contract deploy --wasm "$WASM_PATH" --source-account deployer --network testnet)"
+          echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
+          {
+            echo "## SplitCare contract deployed"
+            echo ""
+            echo "- Network: Stellar Testnet"
+            echo "- Contract ID: \`$CONTRACT_ID\`"
+            echo ""
+            echo "Set \`VITE_CONTRACT_ID=$CONTRACT_ID\` in .env / Vercel env and record it in README.md."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report contract id
+        run: |
+          echo "Deployed contract id: ${{ steps.deploy.outputs.contract_id }}"

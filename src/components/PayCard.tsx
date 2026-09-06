@@ -1,6 +1,6 @@
 import { formatXlm } from "../lib/money"
 import type { Member, PaymentPhase } from "../types"
-import { Alert, ArrowUpRight, Bolt } from "./Icons"
+import { Alert, ArrowUpRight, Bolt, CheckCircle } from "./Icons"
 
 export interface Blocker {
 	id: string
@@ -22,14 +22,21 @@ interface Props {
 	phase: PaymentPhase
 	onPay: () => void
 	errorMessage: string | null
+	/* Level 2: on-chain publishing state */
+	contractEnabled: boolean
+	published: boolean
+	canPublish: boolean
+	contractBusy: boolean
+	onPublish: () => void
 }
 
 const PHASE_LABEL: Record<PaymentPhase, string> = {
 	idle: "Pay my share",
-	building: "Preparing transaction",
-	signing: "Waiting for Freighter",
-	submitting: "Submitting to Testnet",
-	anticipating: "Checking transaction",
+	building: "Preparing payment",
+	signing: "Waiting for wallet",
+	submitting: "Sending to Testnet",
+	anticipating: "Confirming payment",
+	recording: "Recording on contract",
 	done: "Pay my share",
 }
 
@@ -48,9 +55,19 @@ export function PayCard({
 	phase,
 	onPay,
 	errorMessage,
+	contractEnabled,
+	published,
+	canPublish,
+	contractBusy,
+	onPublish,
 }: Props) {
-	const isBusy = phase === "building" || phase === "signing" || phase === "submitting" || phase === "anticipating"
-	const canPay = blockers.length === 0 && !isBusy
+	const isBusy =
+		phase === "building" ||
+		phase === "signing" ||
+		phase === "submitting" ||
+		phase === "anticipating" ||
+		phase === "recording"
+	const canPay = blockers.length === 0 && !isBusy && !contractBusy
 
 	return (
 		<div className="card">
@@ -75,6 +92,30 @@ export function PayCard({
 					<dd className="kv__v num">{totalStroops !== null ? formatXlm(totalStroops) : "—"} XLM</dd>
 				</div>
 			</dl>
+
+			{contractEnabled ? (
+				<div className="publish-row">
+					{published ? (
+						<span className="onchain-chip">
+							<CheckCircle size={14} />
+							Published on the SplitCare contract
+						</span>
+					) : (
+						<>
+							<span>This expense is not on-chain yet.</span>
+							<button
+								type="button"
+								className="btn btn--secondary btn--sm"
+								onClick={onPublish}
+								disabled={!canPublish || contractBusy}
+							>
+								{contractBusy ? <span className="spinner" /> : null}
+								Publish on-chain
+							</button>
+						</>
+					)}
+				</div>
+			) : null}
 
 			<label className="field pay-field">
 				<span className="field__label">Destination address</span>
@@ -107,7 +148,7 @@ export function PayCard({
 				/>
 			</label>
 
-			<button type="button" className={`btn btn--primary btn--block pay-cta ${phase === "anticipating" ? "animate-pulse" : ""}`} disabled={!canPay} onClick={onPay}>
+			<button type="button" className={`btn btn--primary btn--block pay-cta ${phase === "anticipating" || phase === "recording" ? "animate-pulse" : ""}`} disabled={!canPay} onClick={onPay}>
 				{isBusy ? <span className="spinner" /> : <Bolt size={15} />}
 				{PHASE_LABEL[phase]}
 			</button>

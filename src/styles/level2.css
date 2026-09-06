@@ -1,0 +1,302 @@
+/* Level 2 additions: multi-wallet picker, contract tx status, live event feed.
+   Colors fall back to neutral values so this file works without touching tokens.css. */
+
+/* --- Wallet picker --------------------------------------------------- */
+
+.wallet-options {
+	display: grid;
+	gap: 8px;
+	margin: 12px 0;
+}
+
+.wallet-option {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid rgba(127, 127, 127, 0.25);
+	border-radius: 12px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.wallet-option:hover:not(:disabled) {
+	border-color: var(--accent, #6366f1);
+	background: rgba(127, 127, 127, 0.06);
+}
+
+.wallet-option:disabled {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.wallet-option__icon {
+	width: 28px;
+	height: 28px;
+	border-radius: 8px;
+	object-fit: contain;
+	background: rgba(127, 127, 127, 0.12);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.wallet-option__meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-width: 0;
+}
+
+.wallet-option__name {
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.wallet-option__state {
+	font-size: 12px;
+	opacity: 0.6;
+}
+
+.wallet-option__state--ok {
+	opacity: 1;
+	color: #16a34a;
+}
+
+.wallet-provider {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	padding: 3px 8px;
+	border-radius: 999px;
+	background: rgba(127, 127, 127, 0.12);
+	margin-bottom: 10px;
+}
+
+.wallet-provider img {
+	width: 14px;
+	height: 14px;
+	border-radius: 4px;
+}
+
+/* --- Contract transaction status ------------------------------------- */
+
+.txchip {
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 3px 8px;
+	border-radius: 999px;
+	background: rgba(127, 127, 127, 0.15);
+}
+
+.txchip--success {
+	color: #16a34a;
+	background: rgba(22, 163, 74, 0.12);
+}
+
+.txchip--failed,
+.txchip--rejected {
+	color: #dc2626;
+	background: rgba(220, 38, 38, 0.12);
+}
+
+.txchip--pending,
+.txchip--submitting,
+.txchip--preparing,
+.txchip--awaiting-signature {
+	color: var(--accent, #6366f1);
+}
+
+.txsteps {
+	list-style: none;
+	margin: 10px 0 0;
+	padding: 0;
+	display: grid;
+	gap: 6px;
+}
+
+.txsteps li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	opacity: 0.55;
+}
+
+.txsteps li::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: rgba(127, 127, 127, 0.4);
+	flex-shrink: 0;
+}
+
+.txsteps li.is-done {
+	opacity: 1;
+}
+
+.txsteps li.is-done::before {
+	background: #16a34a;
+}
+
+.txsteps li.is-active {
+	opacity: 1;
+	font-weight: 600;
+}
+
+.txsteps li.is-active::before {
+	background: var(--accent, #6366f1);
+	animation: txpulse 1.1s ease-in-out infinite;
+}
+
+.txsteps li.is-failed {
+	opacity: 1;
+	color: #dc2626;
+	font-weight: 600;
+}
+
+.txsteps li.is-failed::before {
+	background: #dc2626;
+	animation: none;
+}
+
+.txstatus__hash {
+	margin-top: 10px;
+	font-size: 12px;
+	word-break: break-all;
+}
+
+@keyframes txpulse {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1.6);
+		opacity: 0.5;
+	}
+}
+
+/* --- Live feed -------------------------------------------------------- */
+
+.livedot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: #16a34a;
+	display: inline-block;
+}
+
+.livedot--sync {
+	animation: txpulse 1s ease-in-out infinite;
+}
+
+.feed {
+	display: grid;
+	gap: 12px;
+	margin-top: 10px;
+}
+
+.feed__item {
+	border: 1px solid rgba(127, 127, 127, 0.2);
+	border-radius: 12px;
+	padding: 12px 14px;
+}
+
+.feed__head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+	font-size: 14px;
+}
+
+.feed__meta {
+	font-size: 12px;
+	opacity: 0.7;
+	margin: 6px 0 0;
+}
+
+.feed__members {
+	list-style: none;
+	margin: 10px 0 0;
+	padding: 0;
+	display: grid;
+	gap: 4px;
+	font-size: 13px;
+}
+
+.feed__member {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 6px 8px;
+	border-radius: 8px;
+	background: rgba(127, 127, 127, 0.07);
+}
+
+.feed__member--paid {
+	outline: 1px solid rgba(22, 163, 74, 0.35);
+}
+
+.feed__paid,
+.feed__member a {
+	color: #16a34a;
+	font-weight: 600;
+}
+
+.feed__unpaid {
+	opacity: 0.55;
+}
+
+.progress {
+	height: 6px;
+	border-radius: 999px;
+	background: rgba(127, 127, 127, 0.18);
+	overflow: hidden;
+	margin-top: 8px;
+}
+
+.progress span {
+	display: block;
+	height: 100%;
+	background: var(--accent, #6366f1);
+	border-radius: 999px;
+	transition: width 0.4s ease;
+}
+
+/* --- Publish-on-chain row --------------------------------------------- */
+
+.publish-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 12px 0;
+	padding: 10px 12px;
+	border: 1px dashed rgba(127, 127, 127, 0.35);
+	border-radius: 12px;
+	font-size: 13px;
+}
+
+.onchain-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: #16a34a;
+	font-weight: 600;
+	font-size: 12.5px;
+}

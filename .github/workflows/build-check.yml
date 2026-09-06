@@ -1,0 +1,87 @@
+name: Build check (reports on PR)
+
+on:
+  push:
+    branches: [level-2-soroban]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        id: install
+        run: set -o pipefail && npm install --legacy-peer-deps 2>&1 | tee /tmp/install.log
+
+      - name: Resolved key package versions
+        if: steps.install.outcome == 'success'
+        run: npm ls @creit.tech/stellar-wallets-kit @stellar/stellar-sdk 2>&1 | tee /tmp/versions.log || true
+
+      - name: Typecheck
+        id: typecheck
+        run: set -o pipefail && npm run typecheck 2>&1 | tee /tmp/typecheck.log
+
+      - name: Build
+        id: build
+        run: set -o pipefail && npm run build 2>&1 | tee /tmp/build.log
+
+      - name: Comment build result on the PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const tail = (p, n) => {
+              try { return fs.readFileSync(p, 'utf8').split('\n').slice(-n).join('\n'); } catch { return '(no log)'; }
+            };
+            const install = '${{ steps.install.outcome }}';
+            const typecheck = '${{ steps.typecheck.outcome }}';
+            const build = '${{ steps.build.outcome }}';
+            const branch = context.ref.replace('refs/heads/', '');
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: context.repo.owner + ':' + branch,
+              state: 'open',
+            });
+            const ok = install === 'success' && typecheck === 'success' && build === 'success';
+            const parts = [
+              'Build check for `' + context.sha.slice(0, 7) + '`: ' + (ok ? 'SUCCESS ✅' : 'FAILURE ❌'),
+              '',
+              '- install: ' + install,
+              '- typecheck: ' + typecheck,
+              '- build: ' + build,
+              '',
+              tail('/tmp/versions.log', 8),
+              '',
+              '<details><summary>Log tail</summary>',
+              '',
+              '```',
+              tail('/tmp/install.log', 25),
+              tail('/tmp/typecheck.log', 40),
+              tail('/tmp/build.log', 40),
+              '```',
+              '</details>',
+            ];
+            const body = parts.join('\n');
+            if (prs.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prs.data[0].number,
+                body,
+              });
+            }

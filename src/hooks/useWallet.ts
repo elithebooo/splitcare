@@ -1,29 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { WalletError, connectWallet, readNetwork, restoreWallet } from "../lib/freighter"
+import { toAppError } from "../lib/errors"
+import {
+	connectWallet,
+	disconnectWallet,
+	listWallets,
+	readWalletNetwork,
+	restoreWallet,
+	signWithWallet,
+} from "../lib/walletKit"
 import { fundWithFriendbot, loadNativeBalance } from "../lib/stellar"
-import type { WalletState } from "../types"
+import type { WalletOption, WalletProvider, WalletState } from "../types"
 
 const INITIAL: WalletState = {
 	status: "unknown",
 	address: null,
+	provider: null,
 	networkLabel: null,
 	onTestnet: false,
 	balanceStroops: null,
 	accountFunded: false,
 	loadingBalance: false,
 	error: null,
+	errorCode: null,
 }
 
-const MESSAGES = {
-	notInstalled: "Freighter was not detected. Install the extension and reload this page.",
-	cancelled: "Wallet connection was cancelled in Freighter.",
-	wrongNetwork: "Switch Freighter to Stellar Testnet to continue.",
-	balance: "We could not load your testnet XLM balance. Please try again.",
-}
+const BALANCE_ERROR = "We could not load your testnet XLM balance. Please try again."
 
+/**
+ * Multi-wallet state powered by StellarWalletsKit.
+ * `connect(walletId)` connects to one specific wallet from the picker.
+ */
 export function useWallet() {
 	const [wallet, setWallet] = useState<WalletState>(INITIAL)
+	const [wallets, setWallets] = useState<WalletOption[]>([])
+	const [walletsLoading, setWalletsLoading] = useState(true)
+	const [connectingId, setConnectingId] = useState<string | null>(null)
+
 	const mounted = useRef(true)
 	const addressRef = useRef<string | null>(null)
 
@@ -31,6 +44,19 @@ export function useWallet() {
 		mounted.current = true
 		return () => {
 			mounted.current = false
+		}
+	}, [])
+
+	// Detect supported wallets once on mount (for the wallet picker UI).
+	useEffect(() => {
+		let cancelled = false
+		void listWallets().then((options) => {
+			if (cancelled) return
+			setWallets(options)
+			setWalletsLoading(false)
+		})
+		return () => {
+			cancelled = true
 		}
 	}, [])
 
@@ -47,23 +73,25 @@ export function useWallet() {
 			}))
 		} catch {
 			if (!mounted.current) return
-			setWallet((current) => ({ ...current, loadingBalance: false, error: MESSAGES.balance }))
+			setWallet((current) => ({ ...current, loadingBalance: false, error: BALANCE_ERROR }))
 		}
 	}, [])
 
 	const adopt = useCallback(
-		async (address: string) => {
+		async (address: string, provider: WalletProvider) => {
 			addressRef.current = address
-			const network = await readNetwork()
+			const network = await readWalletNetwork()
 			if (!mounted.current) return
 
 			setWallet((current) => ({
 				...current,
 				status: "connected",
 				address,
+				provider,
 				networkLabel: network.label,
 				onTestnet: network.onTestnet,
-				error: network.onTestnet ? null : MESSAGES.wrongNetwork,
+				error: network.onTestnet ? null : "Switch your wallet to Stellar Testnet to continue.",
+				errorCode: network.onTestnet ? null : "wrong-network",
 			}))
 
 			void loadBalance(address)
@@ -71,44 +99,49 @@ export function useWallet() {
 		[loadBalance],
 	)
 
+	// Silently restore the previously used wallet, if the user approved it before.
 	useEffect(() => {
 		let cancelled = false
 		;(async () => {
 			try {
-				const address = await restoreWallet()
-				if (cancelled || !address) return
-				await adopt(address)
+				const restored = await restoreWallet()
+				if (cancelled || !restored) return
+				await adopt(restored.address, restored.provider)
 			} catch {
-				// Silent reconnect failures are not surfaced; the user can connect manually.
+				// Silent reconnect failures are fine; the user can connect manually.
 			}
 		})()
 		return () => {
 			cancelled = true
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
-
-	const connect = useCallback(async () => {
-		setWallet((current) => ({ ...current, status: "connecting", error: null }))
-		try {
-			const address = await connectWallet()
-			await adopt(address)
-		} catch (error) {
-			const message =
-				error instanceof WalletError
-					? error.code === "rejected"
-						? MESSAGES.cancelled
-						: error.code === "not-installed"
-							? MESSAGES.notInstalled
-							: error.message
-					: "Could not connect to Freighter."
-
-			setWallet((current) => ({ ...current, status: "disconnected", error: message }))
-		}
 	}, [adopt])
+
+	const connect = useCallback(
+		async (walletId: string) => {
+			setConnectingId(walletId)
+			setWallet((current) => ({ ...current, status: "connecting", error: null, errorCode: null }))
+			try {
+				const { address, provider } = await connectWallet(walletId)
+				await adopt(address, provider)
+			} catch (error) {
+				const appError = toAppError(error, "Could not connect to the wallet.")
+				if (!mounted.current) return
+				setWallet((current) => ({
+					...current,
+					status: "disconnected",
+					error: appError.message,
+					errorCode: appError.code,
+				}))
+			} finally {
+				if (mounted.current) setConnectingId(null)
+			}
+		},
+		[adopt],
+	)
 
 	const disconnect = useCallback(() => {
 		addressRef.current = null
+		void disconnectWallet()
 		setWallet({ ...INITIAL, status: "disconnected" })
 	}, [])
 
@@ -130,10 +163,23 @@ export function useWallet() {
 	}, [loadBalance])
 
 	const clearError = useCallback(() => {
-		setWallet((current) => ({ ...current, error: null }))
+		setWallet((current) => ({ ...current, error: null, errorCode: null }))
 	}, [])
 
-	return { wallet, connect, disconnect, refresh, fundAccount, clearError }
+	const sign = useCallback((xdr: string, address: string) => signWithWallet(xdr, address), [])
+
+	return {
+		wallet,
+		wallets,
+		walletsLoading,
+		connectingId,
+		connect,
+		disconnect,
+		refresh,
+		fundAccount,
+		clearError,
+		sign,
+	}
 }
 
 export type UseWallet = ReturnType<typeof useWallet>

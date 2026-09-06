@@ -2,9 +2,11 @@ import { DashboardNav } from "../components/DashboardNav"
 import type { DashboardSection } from "../components/DashboardNav"
 import { Header } from "../components/Header"
 import type { CareSplit } from "../hooks/useCareSplit"
+import type { UseContractEvents } from "../hooks/useContractEvents"
 import type { UseSettings } from "../hooks/useSettings"
 import type { UseWallet } from "../hooks/useWallet"
 import { AccountPage } from "./AccountPage"
+import { ActivityPage } from "./ActivityPage"
 import { PaymentsPage } from "./PaymentsPage"
 import { SettingsPage } from "./SettingsPage"
 
@@ -14,16 +16,20 @@ interface Props {
 	careSplit: CareSplit
 	wallet: UseWallet
 	settings: UseSettings
+	contractEvents: UseContractEvents
 }
 
-export function DashboardPage({ section, onNavigate, careSplit, wallet, settings }: Props) {
+export function DashboardPage({ section, onNavigate, careSplit, wallet, settings, contractEvents }: Props) {
+	// Wallet connection happens on the Payments page via the multi-wallet picker.
+	const goToWalletPicker = () => onNavigate("/app/payments")
+
 	return (
 		<div className="app-shell">
 			<Header
 				wallet={wallet.wallet}
 				currentPath={`/app/${section}`}
 				onNavigate={onNavigate}
-				onConnect={() => void wallet.connect()}
+				onConnect={goToWalletPicker}
 				onDisconnect={wallet.disconnect}
 			/>
 
@@ -34,11 +40,14 @@ export function DashboardPage({ section, onNavigate, careSplit, wallet, settings
 					{section === "account" ? (
 						<AccountPage
 							wallet={wallet.wallet}
-							onConnect={() => void wallet.connect()}
+							onConnect={goToWalletPicker}
 							onDisconnect={wallet.disconnect}
 						/>
 					) : null}
-					{section === "payments" ? <PaymentsPage careSplit={careSplit} wallet={wallet} /> : null}
+					{section === "payments" ? (
+						<PaymentsPage careSplit={careSplit} wallet={wallet} contractEvents={contractEvents} />
+					) : null}
+					{section === "activity" ? <ActivityPage contractEvents={contractEvents} /> : null}
 					{section === "settings" ? (
 						<SettingsPage
 							settings={settings.settings}

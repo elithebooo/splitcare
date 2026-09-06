@@ -1,18 +1,20 @@
 {
   "name": "splitcare",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Split care-related expenses with your family and pay your share on Stellar Testnet.",
+  "description": "Split care-related expenses, pay shares with any Stellar wallet, and track everything on a Soroban contract (Stellar Testnet).",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "contract:build": "cd contracts/splitcare && stellar contract build",
+    "contract:test": "cd contracts/splitcare && cargo test"
   },
   "dependencies": {
-    "@stellar/freighter-api": "^4.1.0",
-    "@stellar/stellar-sdk": "^13.1.0",
+    "@creit.tech/stellar-wallets-kit": "^1.9.5",
+    "@stellar/stellar-sdk": "^14.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

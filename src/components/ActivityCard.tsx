@@ -1,8 +1,10 @@
 import { explorerTxUrl } from "../lib/stellar"
-import type { Receipt } from "../types"
+import type { ContractEventInfo, Receipt } from "../types"
 
 interface Props {
 	receipts: Receipt[]
+	/** Live contract events streamed from Soroban RPC. */
+	liveEvents?: ContractEventInfo[]
 	onClear: () => void
 }
 
@@ -16,7 +18,9 @@ function relativeTime(iso: string): string {
 	return `${Math.round(seconds / 86_400)}d ago`
 }
 
-export function ActivityCard({ receipts, onClear }: Props) {
+export function ActivityCard({ receipts, liveEvents, onClear }: Props) {
+	const recentEvents = liveEvents ? [...liveEvents].slice(-8).reverse() : []
+
 	return (
 		<div className="card">
 			<div className="card__head">
@@ -30,8 +34,8 @@ export function ActivityCard({ receipts, onClear }: Props) {
 
 			{receipts.length === 0 ? (
 				<p className="empty">
-					Payments you make in this tab show up here with their transaction hash. Nothing is stored
-					after you close the page.
+					Payments you make in this tab show up here with their transaction hash. Nothing is
+					stored after you close the page.
 				</p>
 			) : (
 				<div className="activity">
@@ -69,6 +73,50 @@ export function ActivityCard({ receipts, onClear }: Props) {
 					})}
 				</div>
 			)}
+
+			{recentEvents.length > 0 ? (
+				<>
+					<div className="card__head" style={{ marginTop: 16 }}>
+						<h3 className="card__title">Live contract events</h3>
+						<span className="livedot" title="Synced from the contract" aria-hidden="true" />
+					</div>
+					<div className="activity">
+						{recentEvents.map((event) => {
+							const body = (
+								<>
+									<span
+										className="activity__dot"
+										style={{ background: event.kind === "paid" ? "#16a34a" : "var(--accent, #6366f1)" }}
+									/>
+									<span className="activity__meta">
+										<span className="activity__title">{event.summary}</span>
+										<span className="activity__sub">
+											ledger {event.ledger}
+											{event.closedAt ? ` · ${relativeTime(event.closedAt)}` : ""}
+										</span>
+									</span>
+								</>
+							)
+
+							return event.txHash ? (
+								<a
+									key={event.id}
+									className="activity__item"
+									href={explorerTxUrl(event.txHash)}
+									target="_blank"
+									rel="noreferrer"
+								>
+									{body}
+								</a>
+							) : (
+								<div key={event.id} className="activity__item">
+									{body}
+								</div>
+							)
+						})}
+					</div>
+				</>
+			) : null}
 		</div>
 	)
 }

@@ -32,6 +32,25 @@ export interface Member {
 	locked: boolean
 }
 
+/* ------------------------------------------------------------------ */
+/* Errors                                                              */
+/* ------------------------------------------------------------------ */
+
+export type AppErrorCode =
+	| "wallet-not-found"
+	| "rejected"
+	| "insufficient-balance"
+	| "wrong-network"
+	| "invalid-address"
+	| "network"
+	| "rpc"
+	| "contract"
+	| "unknown"
+
+/* ------------------------------------------------------------------ */
+/* Wallet (multi-wallet via StellarWalletsKit)                         */
+/* ------------------------------------------------------------------ */
+
 export type WalletStatus =
 	| "unknown"
 	| "unavailable"
@@ -39,15 +58,28 @@ export type WalletStatus =
 	| "connecting"
 	| "connected"
 
+export interface WalletProvider {
+	id: string
+	name: string
+	icon: string
+}
+
+export interface WalletOption extends WalletProvider {
+	url: string
+	isAvailable: boolean
+}
+
 export interface WalletState {
 	status: WalletStatus
 	address: string | null
+	provider: WalletProvider | null
 	networkLabel: string | null
 	onTestnet: boolean
 	balanceStroops: bigint | null
 	accountFunded: boolean
 	loadingBalance: boolean
 	error: string | null
+	errorCode: AppErrorCode | null
 }
 
 export type ThemePreference = "light" | "dark" | "system"
@@ -59,12 +91,17 @@ export interface SettingsState {
 	notifications: boolean
 }
 
+/* ------------------------------------------------------------------ */
+/* Payments                                                            */
+/* ------------------------------------------------------------------ */
+
 export type PaymentPhase =
 	| "idle"
 	| "building"
 	| "signing"
 	| "submitting"
 	| "anticipating"
+	| "recording"
 	| "done"
 
 export interface Receipt {
@@ -82,4 +119,73 @@ export interface Receipt {
 	destination: string
 	memo?: string
 	createdAt: string
+	/** Hash of the Soroban contract call that recorded this payment. */
+	contractTxHash?: string
+	/** On-chain expense id this payment was recorded against. */
+	expenseOnchainId?: string
+}
+
+/* ------------------------------------------------------------------ */
+/* Contract transaction status (Soroban)                               */
+/* ------------------------------------------------------------------ */
+
+export type TxStage =
+	| "idle"
+	| "preparing"
+	| "awaiting-signature"
+	| "submitting"
+	| "pending"
+	| "success"
+	| "failed"
+	| "rejected"
+
+export interface TxStatus {
+	stage: TxStage
+	hash: string | null
+	error: string | null
+}
+
+/* ------------------------------------------------------------------ */
+/* Contract data + events                                              */
+/* ------------------------------------------------------------------ */
+
+export interface FeedMember {
+	name: string
+	amountStroops: bigint
+	paid: boolean
+	paidBy: string | null
+	txHash: string | null
+}
+
+export interface FeedExpense {
+	id: string
+	title: string
+	creator: string
+	totalStroops: bigint
+	members: FeedMember[]
+	createdLedger: number
+	createdTxHash: string | null
+}
+
+export type ContractEventKind = "created" | "paid"
+
+export interface ContractEventInfo {
+	/** Unique event id (also used as the RPC paging cursor). */
+	id: string
+	kind: ContractEventKind
+	expenseId: string
+	ledger: number
+	closedAt: string
+	/** Hash of the contract invocation that emitted this event. */
+	txHash: string | null
+	/** Short human readable summary for activity feeds. */
+	summary: string
+	/** Present on "created" events: the full expense payload. */
+	created?: Omit<FeedExpense, "createdTxHash">
+	/** Present on "paid" events. */
+	memberIndex?: number
+	payer?: string
+	amountStroops?: bigint
+	/** Present on "paid" events: hash of the underlying XLM payment. */
+	paymentTxHash?: string
 }

@@ -26,6 +26,10 @@ export function explorerAccountUrl(address: string): string {
 	return `${EXPLORER_BASE}/account/${address}`
 }
 
+export function explorerContractUrl(contractId: string): string {
+	return `${EXPLORER_BASE}/contract/${contractId}`
+}
+
 export function isValidAddress(value: string): boolean {
 	return StrKey.isValidEd25519PublicKey(value)
 }

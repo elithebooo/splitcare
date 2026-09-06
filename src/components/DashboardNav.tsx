@@ -1,15 +1,34 @@
 import { CreditCard, Gear, User } from "./Icons"
 
-export type DashboardSection = "account" | "payments" | "settings"
+export type DashboardSection = "account" | "payments" | "activity" | "settings"
 
 interface Props {
 	active: DashboardSection
 	onNavigate: (section: DashboardSection) => void
 }
 
+function Pulse({ size = 16 }: { size?: number }) {
+	return (
+		<svg
+			width={size}
+			height={size}
+			viewBox="0 0 20 20"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth={1.5}
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+		>
+			<path d="M2.5 10h4l2-5.5 3 11 2-5.5h4" />
+		</svg>
+	)
+}
+
 const ITEMS: Array<{ id: DashboardSection; label: string; icon: (props: { size?: number }) => JSX.Element }> = [
 	{ id: "account", label: "Account", icon: User },
 	{ id: "payments", label: "Payments", icon: CreditCard },
+	{ id: "activity", label: "Activity", icon: Pulse },
 	{ id: "settings", label: "Settings", icon: Gear },
 ]
 

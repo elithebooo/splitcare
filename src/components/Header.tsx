@@ -72,7 +72,8 @@ export function Header({ wallet, currentPath, onNavigate, onConnect, onDisconnec
 			</div>
 
 			<div className="header__notice">
-				Testnet demo. SplitCare moves test XLM only. Wallet actions are handled by Freighter and transactions are submitted to Stellar Testnet.
+				Testnet demo. SplitCare moves test XLM only. Wallets connect through StellarWalletsKit and
+				expenses are tracked on a Soroban smart contract.
 			</div>
 		</header>
 	)

@@ -1,17 +1,30 @@
 import { addressColors, formatXlm, shortenAddress } from "../lib/money"
 import { explorerAccountUrl } from "../lib/stellar"
-import type { WalletState } from "../types"
+import type { WalletOption, WalletState } from "../types"
 import { Alert, ArrowUpRight, Power, Refresh, Wallet } from "./Icons"
+import { WalletOptions } from "./WalletOptions"
 
 interface Props {
 	wallet: WalletState
-	onConnect: () => void
+	wallets: WalletOption[]
+	walletsLoading: boolean
+	connectingId: string | null
+	onConnect: (walletId: string) => void
 	onDisconnect: () => void
 	onRefresh: () => void
 	onFund: () => void
 }
 
-export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund }: Props) {
+export function WalletCard({
+	wallet,
+	wallets,
+	walletsLoading,
+	connectingId,
+	onConnect,
+	onDisconnect,
+	onRefresh,
+	onFund,
+}: Props) {
 	const connected = wallet.status === "connected" && wallet.address
 
 	if (!connected) {
@@ -22,30 +35,27 @@ export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund 
 				</div>
 				<div className="wallet-empty">
 					<Wallet size={22} />
-					<p>Connect Freighter on Stellar Testnet to see your balance and send the selected share.</p>
-					<button
-						type="button"
-						className="btn btn--primary btn--block"
-						onClick={onConnect}
-						disabled={wallet.status === "connecting"}
-					>
-						{wallet.status === "connecting" ? "Connecting…" : "Connect wallet"}
-					</button>
-					<p className="fineprint">Freighter may reconnect a previously approved wallet. Switch accounts in Freighter first if needed.</p>
+					<p>Pick a Stellar wallet to connect on Testnet. Any wallet supported by StellarWalletsKit works.</p>
+					<WalletOptions
+						wallets={wallets}
+						loading={walletsLoading}
+						connectingId={connectingId}
+						onSelect={onConnect}
+					/>
 					{wallet.error ? (
 						<div className="banner banner--warn">
 							<Alert size={14} />
 							<span>{wallet.error}</span>
 						</div>
 					) : null}
-					{wallet.error?.includes("not detected") ? (
+					{wallet.errorCode === "wallet-not-found" ? (
 						<a
 							className="linkbtn"
-							href="https://www.freighter.app/"
+							href="https://docs.freighter.app/"
 							target="_blank"
 							rel="noreferrer"
 						>
-							Get Freighter
+							Get a Stellar wallet
 							<ArrowUpRight size={12} />
 						</a>
 					) : null}
@@ -60,10 +70,23 @@ export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund 
 		<div className="card card--accent">
 			<div className="card__head">
 				<h3 className="card__title">Wallet</h3>
-				<button type="button" className="iconbtn" onClick={onDisconnect} aria-label="Disconnect locally" title="Disconnect locally">
+				<button
+					type="button"
+					className="iconbtn"
+					onClick={onDisconnect}
+					aria-label="Disconnect locally"
+					title="Disconnect locally"
+				>
 					<Power size={14} />
 				</button>
 			</div>
+
+			{wallet.provider ? (
+				<span className="wallet-provider" title={`Connected via ${wallet.provider.name}`}>
+					{wallet.provider.icon ? <img src={wallet.provider.icon} alt="" aria-hidden="true" /> : null}
+					{wallet.provider.name}
+				</span>
+			) : null}
 
 			<div className="wallet-row">
 				<span
@@ -97,7 +120,10 @@ export function WalletCard({ wallet, onConnect, onDisconnect, onRefresh, onFund 
 				</div>
 			) : null}
 
-			<p className="fineprint">Disconnect clears SplitCare only. Freighter keeps site permissions until you remove them there.</p>
+			<p className="fineprint">
+				Disconnect clears SplitCare only. Your wallet keeps site permissions until you remove
+				them there.
+			</p>
 
 			<div className="wallet-actions">
 				{!wallet.accountFunded ? (

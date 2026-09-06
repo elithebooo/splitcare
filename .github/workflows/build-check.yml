@@ -24,19 +24,19 @@ jobs:
 
       - name: Install dependencies
         id: install
-        run: npm install --legacy-peer-deps 2>&1 | tee /tmp/install.log
+        run: set -o pipefail && npm install --legacy-peer-deps 2>&1 | tee /tmp/install.log
 
-      - name: Resolved wallet kit version
+      - name: Resolved key package versions
         if: steps.install.outcome == 'success'
-        run: npm ls @creit.tech/stellar-wallets-kit 2>&1 | tee /tmp/versions.log || true
+        run: npm ls @creit.tech/stellar-wallets-kit @stellar/stellar-sdk 2>&1 | tee /tmp/versions.log || true
 
       - name: Typecheck
         id: typecheck
-        run: npm run typecheck 2>&1 | tee /tmp/typecheck.log
+        run: set -o pipefail && npm run typecheck 2>&1 | tee /tmp/typecheck.log
 
       - name: Build
         id: build
-        run: npm run build 2>&1 | tee /tmp/build.log
+        run: set -o pipefail && npm run build 2>&1 | tee /tmp/build.log
 
       - name: Comment build result on the PR
         if: always()
@@ -65,7 +65,7 @@ jobs:
               '- typecheck: ' + typecheck,
               '- build: ' + build,
               '',
-              tail('/tmp/versions.log', 5),
+              tail('/tmp/versions.log', 8),
               '',
               '<details><summary>Log tail</summary>',
               '',

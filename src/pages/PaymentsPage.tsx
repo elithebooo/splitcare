@@ -13,7 +13,7 @@ import type { CareSplit } from "../hooks/useCareSplit"
 import { useSplitCareContract } from "../hooks/useContract"
 import type { UseContractEvents } from "../hooks/useContractEvents"
 import type { UseWallet } from "../hooks/useWallet"
-import { errorMessage } from "../lib/errors"
+import { errorMessage as describeError } from "../lib/errors"
 import { createId } from "../lib/id"
 import { formatXlm, isAmountLike, stroopsToStellarAmount } from "../lib/money"
 import { TOTAL_BP } from "../lib/split"
@@ -220,7 +220,7 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 				} catch (recordError) {
 					// The XLM payment already succeeded; recording is reported as a warning.
 					setRecordWarning(
-						errorMessage(recordError, "Payment succeeded, but recording it on the contract failed."),
+						describeError(recordError, "Payment succeeded, but recording it on the contract failed."),
 					)
 				}
 			}

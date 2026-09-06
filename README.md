@@ -94,7 +94,7 @@ echo "VITE_CONTRACT_ID=<contract id>" >> .env
 ## Tech Stack
 
 - React + Vite + TypeScript
-- `@creit-tech/stellar-wallets-kit` (multi-wallet)
+- `@creit.tech/stellar-wallets-kit` (multi-wallet, npm v1 line)
 - `@stellar/stellar-sdk` (Horizon + Soroban RPC)
 - Soroban contract in Rust (`contracts/splitcare`)
 - CSS: tokens, base, app styles, level2 additions

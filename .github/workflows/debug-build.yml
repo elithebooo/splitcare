@@ -1,0 +1,52 @@
+name: Debug build (level 2)
+
+on:
+  push:
+    branches: [level-2-soroban]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install and build (capture logs)
+        run: |
+          set +e
+          {
+            echo "node: $(node -v)  npm: $(npm -v)"
+            echo "=== npm install --legacy-peer-deps ==="
+            npm install --legacy-peer-deps
+            echo "install exit: $?"
+            echo "=== npm ls (key packages) ==="
+            npm ls @creit.tech/stellar-wallets-kit @stellar/stellar-base @stellar/stellar-sdk || true
+            echo "=== npm run build ==="
+            npm run build
+            echo "build exit: $?"
+          } > build.log 2>&1
+          exit 0
+
+      - name: Comment build log on PR
+        if: always()
+        run: |
+          tail -c 55000 build.log > build-tail.log
+          {
+            echo "### Debug build for commit ${GITHUB_SHA:0:7}"
+            echo ""
+            echo '```text'
+            cat build-tail.log
+            echo '```'
+          } > comment.md
+          gh pr comment 1 --repo elithebooo/splitcare --body-file comment.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

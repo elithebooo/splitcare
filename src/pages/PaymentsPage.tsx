@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { ActivityCard } from "../components/ActivityCard"
 import { ExpenseSection } from "../components/ExpenseSection"
@@ -6,25 +6,34 @@ import type { Blocker } from "../components/PayCard"
 import { PayCard } from "../components/PayCard"
 import { ReceiptCard } from "../components/ReceiptCard"
 import { SplitSection } from "../components/SplitSection"
+import { TxStatusCard } from "../components/TxStatusCard"
 import { WalletCard } from "../components/WalletCard"
+import { CONTRACT_ENABLED } from "../config"
 import type { CareSplit } from "../hooks/useCareSplit"
+import { useSplitCareContract } from "../hooks/useContract"
+import type { UseContractEvents } from "../hooks/useContractEvents"
 import type { UseWallet } from "../hooks/useWallet"
-import { isAmountLike, stroopsToStellarAmount } from "../lib/money"
-import { signWithFreighter } from "../lib/freighter"
-import { buildPaymentXdr, describeStellarError, isValidAddress, submitSignedXdr } from "../lib/stellar"
+import { errorMessage } from "../lib/errors"
 import { createId } from "../lib/id"
+import { formatXlm, isAmountLike, stroopsToStellarAmount } from "../lib/money"
 import { TOTAL_BP } from "../lib/split"
+import { buildPaymentXdr, describeStellarError, isValidAddress, submitSignedXdr } from "../lib/stellar"
 import type { PaymentPhase, Receipt } from "../types"
 
 interface Props {
 	careSplit: CareSplit
 	wallet: UseWallet
+	contractEvents: UseContractEvents
 }
 
-export function PaymentsPage({ careSplit, wallet }: Props) {
+/** Extra buffer on top of the share to cover the network fee (0.01 XLM). */
+const FEE_BUFFER_STROOPS = 100_000n
+
+export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 	const [memo, setMemo] = useState("")
 	const [phase, setPhase] = useState<PaymentPhase>("idle")
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
+	const [recordWarning, setRecordWarning] = useState<string | null>(null)
 	const [receipts, setReceipts] = useState<Receipt[]>([])
 	const [activeReceipt, setActiveReceipt] = useState<Receipt | null>(null)
 
@@ -56,16 +65,90 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 		setPayer,
 	} = careSplit
 
-	const { wallet: walletState, connect, disconnect, refresh, fundAccount } = wallet
+	const {
+		wallet: walletState,
+		wallets,
+		walletsLoading,
+		connectingId,
+		connect,
+		disconnect,
+		refresh,
+		fundAccount,
+		sign,
+	} = wallet
+
+	const contract = useSplitCareContract(walletState.address, sign)
+
+	/* --- On-chain publishing ------------------------------------------ */
+
+	// Signature of the current split configuration; editing anything republishes as a new expense.
+	const configSig = useMemo(
+		() =>
+			JSON.stringify({
+				e: selectedExpenseId,
+				t: totalInput,
+				m: members.map((member) => [member.name, member.bp]),
+			}),
+		[selectedExpenseId, totalInput, members],
+	)
+
+	const draftIdRef = useRef(createId("expense"))
+	useEffect(() => {
+		draftIdRef.current = createId("expense")
+	}, [configSig])
+
+	const [publishedId, setPublishedId] = useState<string | null>(null)
+	const [publishedSig, setPublishedSig] = useState<string | null>(null)
+	const published = CONTRACT_ENABLED && publishedId !== null && publishedSig === configSig
+
+	const contractBusy =
+		contract.status.stage === "preparing" ||
+		contract.status.stage === "awaiting-signature" ||
+		contract.status.stage === "submitting" ||
+		contract.status.stage === "pending"
+
+	const canPublish =
+		CONTRACT_ENABLED &&
+		walletState.status === "connected" &&
+		walletState.address !== null &&
+		walletState.onTestnet &&
+		walletState.accountFunded &&
+		totalStroops !== null &&
+		totalStroops > 0n &&
+		allocatedBp === TOTAL_BP &&
+		members.length > 0
+
+	async function handlePublish() {
+		if (!canPublish || contractBusy) return
+		setErrorMessage(null)
+		setRecordWarning(null)
+		try {
+			await contract.publishExpense({
+				id: draftIdRef.current,
+				title: selectedExpense?.title ?? "Custom expense",
+				shares: members.map((member, index) => ({
+					name: member.name.trim() || `Person ${index + 1}`,
+					amountStroops: amounts[index] ?? 0n,
+				})),
+			})
+			setPublishedId(draftIdRef.current)
+			setPublishedSig(configSig)
+			void contractEvents.refresh()
+		} catch {
+			// Failure (rejected/failed) is shown in the TxStatusCard.
+		}
+	}
+
+	/* --- Payment flow --------------------------------------------------- */
 
 	const destinationLooksWrong = recipient.length > 0 && !isValidAddress(recipient)
 
 	const blockers = useMemo<Blocker[]>(() => {
 		const list: Blocker[] = []
 		if (walletState.status !== "connected" || !walletState.address) {
-			list.push({ id: "wallet", label: "Connect your Freighter wallet to pay." })
+			list.push({ id: "wallet", label: "Connect a Stellar wallet to pay." })
 		} else if (!walletState.onTestnet) {
-			list.push({ id: "network", label: "Switch Freighter to Stellar Testnet before paying." })
+			list.push({ id: "network", label: "Switch your wallet to Stellar Testnet before paying." })
 		} else if (!walletState.accountFunded) {
 			list.push({ id: "funded", label: "Fund your Testnet account before paying." })
 		}
@@ -83,12 +166,26 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 		if (payerAmountStroops <= 0n) {
 			list.push({ id: "share", label: "The payer's share must be greater than zero." })
 		}
+		if (walletState.balanceStroops !== null && payerAmountStroops > 0n) {
+			const needed = payerAmountStroops + FEE_BUFFER_STROOPS
+			if (walletState.balanceStroops < needed) {
+				list.push({
+					id: "balance",
+					label: `Insufficient balance: this share is ${formatXlm(payerAmountStroops)} XLM plus fees, but the wallet holds ${formatXlm(walletState.balanceStroops)} XLM.`,
+				})
+			}
+		}
+		if (CONTRACT_ENABLED && !published) {
+			list.push({ id: "publish", label: "Publish this expense on the Soroban contract before paying." })
+		}
 		return list
-	}, [walletState, totalStroops, allocatedBp, recipient, payerAmountStroops])
+	}, [walletState, totalStroops, allocatedBp, recipient, payerAmountStroops, published])
 
 	async function handlePay() {
 		if (blockers.length > 0 || !walletState.address) return
 		setErrorMessage(null)
+		setRecordWarning(null)
+		contract.resetStatus()
 		setPhase("building")
 		try {
 			const amount = stroopsToStellarAmount(payerAmountStroops)
@@ -101,18 +198,39 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 			})
 
 			setPhase("signing")
-			const signedXdr = await signWithFreighter(xdr, walletState.address)
+			const signedXdr = await sign(xdr, walletState.address)
 
 			setPhase("submitting")
-			const result = await submitSignedXdr(signedXdr)
+			const hash = await submitSignedXdr(signedXdr)
 
 			setPhase("anticipating")
 			await new Promise((resolve) => setTimeout(resolve, 1000))
 
+			// Level 2: record the payment on the Soroban contract.
+			let contractTxHash: string | undefined
+			if (CONTRACT_ENABLED && published && publishedId) {
+				setPhase("recording")
+				try {
+					contractTxHash = await contract.recordPayment({
+						expenseId: publishedId,
+						memberIndex: payerIndex,
+						paymentTxHash: hash,
+					})
+					void contractEvents.refresh()
+				} catch (recordError) {
+					// The XLM payment already succeeded; recording is reported as a warning.
+					setRecordWarning(
+						errorMessage(recordError, "Payment succeeded, but recording it on the contract failed."),
+					)
+				}
+			}
+
 			const receipt: Receipt = {
 				id: createId("rcpt"),
 				outcome: "success",
-				hash: result,
+				hash,
+				contractTxHash,
+				expenseOnchainId: publishedId ?? undefined,
 				expenseTitle: selectedExpense?.title ?? "Custom expense",
 				totalXlm: stroopsToStellarAmount(totalStroops ?? 0n),
 				memberCount: members.length,
@@ -154,6 +272,8 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 	function handleReset() {
 		setActiveReceipt(null)
 		setErrorMessage(null)
+		setRecordWarning(null)
+		contract.resetStatus()
 		setPhase("idle")
 	}
 
@@ -163,7 +283,8 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 				<span className="eyebrow">Payments</span>
 				<h1 className="page__title">Split a care expense</h1>
 				<p className="page__sub">
-					Pick an expense, adjust the split, then send your share in testnet XLM.
+					Pick an expense, adjust the split, publish it on-chain, then pay your share in testnet
+					XLM.
 				</p>
 			</div>
 
@@ -198,11 +319,22 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 				<aside className="layout__side">
 					<WalletCard
 						wallet={walletState}
-						onConnect={() => void connect()}
+						wallets={wallets}
+						walletsLoading={walletsLoading}
+						connectingId={connectingId}
+						onConnect={(walletId) => void connect(walletId)}
 						onDisconnect={disconnect}
 						onRefresh={() => void refresh()}
 						onFund={() => void fundAccount()}
 					/>
+
+					<TxStatusCard status={contract.status} title="Contract transaction" />
+
+					{recordWarning ? (
+						<div className="banner banner--warn" role="status">
+							{recordWarning}
+						</div>
+					) : null}
 
 					{activeReceipt ? (
 						<ReceiptCard receipt={activeReceipt} onReset={handleReset} />
@@ -222,10 +354,19 @@ export function PaymentsPage({ careSplit, wallet }: Props) {
 							phase={phase}
 							onPay={() => void handlePay()}
 							errorMessage={errorMessage}
+							contractEnabled={CONTRACT_ENABLED}
+							published={published}
+							canPublish={canPublish}
+							contractBusy={contractBusy}
+							onPublish={() => void handlePublish()}
 						/>
 					)}
 
-					<ActivityCard receipts={receipts} onClear={() => setReceipts([])} />
+					<ActivityCard
+						receipts={receipts}
+						liveEvents={contractEvents.events}
+						onClear={() => setReceipts([])}
+					/>
 				</aside>
 			</div>
 		</div>

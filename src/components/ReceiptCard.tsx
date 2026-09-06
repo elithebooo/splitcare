@@ -42,7 +42,7 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 
 	async function copyReceiptText() {
 		const text = success
-			? `SplitCare Testnet payment\nAmount: ${receipt.paidXlm} XLM\nSource: ${receipt.source}\nDestination: ${receipt.destination}\nTransaction: ${receipt.hash ?? "not available"}`
+			? `SplitCare Testnet payment\nAmount: ${receipt.paidXlm} XLM\nSource: ${receipt.source}\nDestination: ${receipt.destination}\nTransaction: ${receipt.hash ?? "not available"}${receipt.contractTxHash ? `\nContract record: ${receipt.contractTxHash}` : ""}`
 			: `SplitCare Testnet payment failed\nAmount: ${receipt.paidXlm} XLM\nDestination: ${receipt.destination}\nReason: ${receipt.errorMessage ?? "not available"}`
 		try {
 			await navigator.clipboard.writeText(text)
@@ -103,6 +103,16 @@ export function ReceiptCard({ receipt, onReset }: Props) {
 					<div className="kv__row">
 						<dt className="kv__k">Memo</dt>
 						<dd className="kv__v">{receipt.memo}</dd>
+					</div>
+				) : null}
+				{receipt.contractTxHash ? (
+					<div className="kv__row">
+						<dt className="kv__k">Contract record</dt>
+						<dd className="kv__v mono">
+							<a href={explorerTxUrl(receipt.contractTxHash)} target="_blank" rel="noreferrer">
+								{shortenAddress(receipt.contractTxHash, 6, 6)}
+							</a>
+						</dd>
 					</div>
 				) : null}
 				<div className="kv__row">

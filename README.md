@@ -44,7 +44,7 @@ https://splitcare-hvgs.vercel.app
 
 The contract lives in `contracts/splitcare` (Rust + soroban-sdk 22).
 
-- **Deployed contract address:** `TODO: deploy, then paste the contract id here`
+- **Deployed contract address:** `CC7IQCOJVGJ6WEE2BILWVINQX2NEZRV7YNIGS4MLH2MGCX4R7CST7AMY`
 - **Contract call transaction hash:** `TODO: publish an expense from the app and paste the hash here`
   (verifiable on `https://stellar.expert/explorer/testnet/tx/<hash>`)
 

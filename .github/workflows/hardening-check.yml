@@ -49,9 +49,15 @@ jobs:
         run: |
           set +e
           cd contracts/splitcare
+          # Force the transitive ed25519-dalek to 2.2.0: version 3.0 moved to
+          # rand_core 0.10, which breaks soroban-env-host's ChaCha20Rng test
+          # helpers (CryptoRng trait mismatch). The repo has no committed
+          # Cargo.lock, so pin it here before testing.
+          cargo generate-lockfile > /tmp/lock.log 2>&1
+          cargo update -p ed25519-dalek --precise 2.2.0 >> /tmp/lock.log 2>&1
           cargo test > /tmp/contract-full.log 2>&1
           echo "cargo test exit: $?" > /tmp/contract.log
-          grep -E "test result:|running [0-9]+ tests|error\[|^error" /tmp/contract-full.log | tail -n 30 >> /tmp/contract.log
+          grep -E "test result:|running [0-9]+ tests|error\[|^error|warning: unused" /tmp/contract-full.log | tail -n 30 >> /tmp/contract.log
           exit 0
 
       - name: Comment result
@@ -65,5 +71,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 1,
-              body: '🤖 **Hardening check v2**\n\n```\n' + (read('/tmp/frontend.log') + '\n--- contract ---\n' + read('/tmp/contract.log')).slice(-4000) + '\n```',
+              body: '🤖 **Hardening check v3**\n\n```\n' + (read('/tmp/frontend.log') + '\n--- lock ---\n' + read('/tmp/lock.log') + '\n--- contract ---\n' + read('/tmp/contract.log')).slice(-4000) + '\n```',
             });

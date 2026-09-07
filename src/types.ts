@@ -30,6 +30,8 @@ export interface Member {
 	bp: number
 	/** A pinned member keeps its share when other members are rebalanced. */
 	locked: boolean
+	/** Testnet wallet address this share is bound to when published on-chain. */
+	address: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -125,6 +127,16 @@ export interface Receipt {
 	expenseOnchainId?: string
 }
 
+/** A payment that succeeded on Stellar but still needs its contract record. */
+export interface PendingContractRecord {
+	expenseId: string
+	memberIndex: number
+	paymentTxHash: string
+	destination: string
+	/** Stored as a decimal string because JSON cannot hold bigint. */
+	amountStroops: string
+}
+
 /* ------------------------------------------------------------------ */
 /* Contract transaction status (Soroban)                               */
 /* ------------------------------------------------------------------ */
@@ -151,6 +163,8 @@ export interface TxStatus {
 
 export interface FeedMember {
 	name: string
+	/** Wallet address this share is bound to on-chain. */
+	address: string | null
 	amountStroops: bigint
 	paid: boolean
 	paidBy: string | null

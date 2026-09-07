@@ -122,6 +122,71 @@ export async function submitSignedXdr(signedXdr: string): Promise<string> {
 	return result.hash
 }
 
+export interface PaymentVerification {
+	ok: boolean
+	reason: string | null
+}
+
+/**
+ * Confirms on Horizon that the payment transaction really happened with the
+ * expected source, destination and native XLM amount. The contract record is
+ * only attempted after this check passes, so a payment can never be recorded
+ * from a made-up hash.
+ */
+export async function verifyPaymentOnChain(input: {
+	hash: string
+	source: string
+	destination: string
+	amountStroops: bigint
+}): Promise<PaymentVerification> {
+	let successful: boolean
+	let sourceAccount: string
+	try {
+		const tx = await horizon.transactions().transaction(input.hash).call()
+		successful = tx.successful
+		sourceAccount = tx.source_account
+	} catch (error) {
+		if (isNotFound(error)) {
+			return { ok: false, reason: "The transaction is not visible on Horizon yet." }
+		}
+		throw error
+	}
+
+	if (!successful) {
+		return { ok: false, reason: "The payment transaction failed on-chain." }
+	}
+	if (sourceAccount !== input.source) {
+		return { ok: false, reason: "The payment was sent from a different account." }
+	}
+
+	const operations = await horizon.operations().forTransaction(input.hash).call()
+	const matched = operations.records.some((record) => {
+		const op = record as unknown as {
+			type?: string
+			from?: string
+			to?: string
+			asset_type?: string
+			amount?: string
+		}
+		return (
+			op.type === "payment" &&
+			op.from === input.source &&
+			op.to === input.destination &&
+			op.asset_type === "native" &&
+			typeof op.amount === "string" &&
+			toStroops(op.amount) === input.amountStroops
+		)
+	})
+
+	if (!matched) {
+		return {
+			ok: false,
+			reason: "The transaction does not contain this payment to the destination.",
+		}
+	}
+	return { ok: true, reason: null }
+}
+
 const OPERATION_ERRORS: Record<string, string> = {
 	op_underfunded: "The sending account does not have enough XLM for this payment.",
 	op_no_destination: "The destination account does not exist on Testnet.",

@@ -31,25 +31,27 @@ jobs:
       - name: Frontend checks
         run: |
           set +e
+          npm install --legacy-peer-deps --no-audit --no-fund > /tmp/install.log 2>&1
+          echo "install exit: $?" > /tmp/frontend.log
+          npm run typecheck > /tmp/typecheck.log 2>&1
+          echo "typecheck exit: $?" >> /tmp/frontend.log
+          npm run build > /tmp/build.log 2>&1
+          echo "build exit: $?" >> /tmp/frontend.log
           {
-            echo "=== npm install ==="
-            npm install --legacy-peer-deps --no-audit --no-fund 2>&1 | tail -n 3
-            echo "install exit: ${PIPESTATUS[0]}"
-            echo "=== typecheck ==="
-            npm run typecheck
-            echo "typecheck exit: $?"
-            echo "=== build ==="
-            npm run build 2>&1 | tail -n 8
-            echo "build exit: ${PIPESTATUS[0]}"
-          } > /tmp/frontend.log 2>&1
+            echo "--- typecheck tail ---"
+            tail -n 15 /tmp/typecheck.log
+            echo "--- build tail ---"
+            tail -n 8 /tmp/build.log
+          } >> /tmp/frontend.log
           exit 0
 
       - name: Contract tests
         run: |
           set +e
           cd contracts/splitcare
-          cargo test > /tmp/contract.log 2>&1
-          echo "cargo test exit: $?" >> /tmp/contract.log
+          cargo test > /tmp/contract-full.log 2>&1
+          echo "cargo test exit: $?" > /tmp/contract.log
+          grep -E "test result:|running [0-9]+ tests|error\[|^error" /tmp/contract-full.log | tail -n 30 >> /tmp/contract.log
           exit 0
 
       - name: Comment result
@@ -63,5 +65,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 1,
-              body: '🤖 **Hardening check (v2 contract + frontend)**\n\n```\n' + (read('/tmp/frontend.log') + '\n--- contract ---\n' + read('/tmp/contract.log')).slice(-8000) + '\n```',
+              body: '🤖 **Hardening check v2**\n\n```\n' + (read('/tmp/frontend.log') + '\n--- contract ---\n' + read('/tmp/contract.log')).slice(-4000) + '\n```',
             });

@@ -40,10 +40,11 @@ jobs:
         id: test
         run: |
           cd contracts/splitcare
-          # Pin transitive ed25519-dalek to 2.2.0 (3.0 broke soroban-env-host
-          # testutils via the rand_core 0.10 upgrade). No committed Cargo.lock.
+          # Pin transitive ed25519-dalek 3.0.0 down to 2.2.0 (3.0 broke
+          # soroban-env-host testutils via the rand_core 0.10 upgrade). The
+          # graph holds both 2.2.0 and 3.0.0, so target @3.0.0 explicitly.
           cargo generate-lockfile
-          cargo update -p ed25519-dalek --precise 2.2.0
+          cargo update -p ed25519-dalek@3.0.0 --precise 2.2.0
           cargo test 2>&1 | tee /tmp/test.log
 
       - name: Build contract wasm

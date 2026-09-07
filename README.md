@@ -1,20 +1,17 @@
 # SplitCare
 
-SplitCare is a Stellar Testnet app for splitting a care-related expense between
-people. **Level 2** turns it into a multi-wallet payment tracker backed by a
-Soroban smart contract with real-time event sync.
+SplitCare is a Stellar Testnet app for splitting a care-related expense between people. **Level 2** turns it into a multi-wallet payment tracker backed by a Soroban smart contract with real-time event sync.
 
-The app does the following:
+The app:
 
-- connects **any Stellar wallet** supported by StellarWalletsKit (Freighter, xBull, Albedo, Rabet, Lobstr, Hana, …)
-- reads the connected wallet address and checks the Testnet network
-- reads the wallet's native XLM balance from Horizon
-- lets the user split a total amount between people
-- **publishes the expense on a Soroban contract** (`create_expense`)
-- builds and sends the selected share as a native XLM payment
-- **records the payment on the contract** (`record_payment`)
-- **streams contract events** (`splitcare/created`, `splitcare/paid`) and rebuilds expense state live — no manual refresh
-- shows the full transaction lifecycle: preparing → signing → pending → success / failed / rejected
+- connects Stellar wallets supported by StellarWalletsKit (Freighter, xBull, Albedo, Rabet, Lobstr, Hana, …)
+- reads the connected address, verifies Testnet, and loads the native XLM balance
+- splits an expense between people
+- publishes the expense to a Soroban contract (`create_expense`)
+- sends the selected share as a native XLM payment
+- records the confirmed payment on the contract (`record_payment`)
+- streams `splitcare/created` and `splitcare/paid` events and rebuilds state live
+- displays preparing → signing → submitting → pending → success / failed / rejected
 - shows payment and contract transaction hashes with Stellar Expert links
 
 ## Live Demo
@@ -29,128 +26,76 @@ https://splitcare-hvgs.vercel.app
 
 | Requirement | Where |
 | --- | --- |
-| StellarWalletsKit implementation | `src/lib/walletKit.ts` + wallet picker in `src/components/WalletOptions.tsx` |
-| Error: wallet not found | `connectWallet()` throws `wallet-not-found`; picker lists unavailable wallets as "Not installed" |
-| Error: rejected by user | `toAppError()` maps rejections to `rejected`; shown in wallet card, pay card and tx status |
-| Error: insufficient balance | Preflight blocker in `PaymentsPage.tsx` + Horizon error mapping in `src/lib/stellar.ts` |
-| Contract deployed on Testnet | `contracts/splitcare` — see [Contract deployment](#contract-deployment) |
+| StellarWalletsKit implementation | `src/lib/walletKit.ts` + `src/components/WalletOptions.tsx` |
+| Error: wallet not found | `connectWallet()` returns `wallet-not-found`; unavailable wallets are shown as “Not installed” |
+| Error: rejected by user | `toAppError()` maps wallet rejection to `rejected` |
+| Error: insufficient balance | Preflight blocker in `PaymentsPage.tsx` + Horizon result mapping |
+| Contract deployed on Testnet | `contracts/splitcare` + deployed address below |
 | Contract called from frontend | `src/lib/contract.ts` + `src/hooks/useContract.ts` |
-| Read + write contract data | writes: `create_expense` / `record_payment`; reads: `get_expense` / `recent_ids` |
-| Event listening + state sync | `src/hooks/useContractEvents.ts` polls `getEvents`; feed rebuilt in `buildFeed()` |
-| Transaction status visible | `src/components/TxStatusCard.tsx` (preparing → awaiting-signature → submitting → pending → success / failed / rejected) |
-| 10+ meaningful commits | see the `level-2-soroban` branch history |
+| Read + write contract data | `create_expense`, `record_payment`, `get_expense`, `recent_ids` |
+| Event listening + state sync | `src/hooks/useContractEvents.ts` + `buildFeed()` |
+| Transaction status visible | `src/components/TxStatusCard.tsx` |
+| 10+ meaningful commits | Level 2 branch/PR history |
+| Successful real Testnet evidence | See [Level 2 transaction evidence](./LEVEL2_SUBMISSION.md) |
 
 ## Contract deployment
 
-The contract lives in `contracts/splitcare` (Rust + soroban-sdk 22).
+The contract lives in `contracts/splitcare` (Rust + Soroban SDK 22).
 
 - **Deployed contract address:** `CC7IQCOJVGJ6WEE2BILWVINQX2NEZRV7YNIGS4MLH2MGCX4R7CST7AMY`
-- **Contract call transaction hash:** `TODO: publish an expense from the app and paste the hash here`
-  (verifiable on `https://stellar.expert/explorer/testnet/tx/<hash>`)
+- **Verified contract-call transaction:** `70c9b511c648cf6cd8ecf1c76a687fb92f16182b47797d9ba72356cc2e7b8859`
+- **Verified native XLM payment:** `a3b0dfc9f718c6a86ffba211fe85fd9c9068774ecc3711480f2591eb25ee7713`
 
-Deploy with either option:
+Explorer links and a description of the submitted screenshots are in [`LEVEL2_SUBMISSION.md`](./LEVEL2_SUBMISSION.md).
+
+Deploy locally:
 
 ```bash
-# option 1: local script (creates and funds a throwaway testnet deployer)
 ./scripts/deploy-contract.sh
 ```
 
-```text
-# option 2: GitHub → Actions → "Deploy SplitCare contract (Testnet)" → Run workflow
-# the contract id is reported in the run summary; no secrets needed
-```
+Or run **Actions → Deploy SplitCare contract (Testnet)**. Then set `VITE_CONTRACT_ID` locally and in Vercel.
 
-Then set the id for the frontend:
+## Level 2 flow
 
-```bash
-echo "VITE_CONTRACT_ID=<contract id>" >> .env
-# and add VITE_CONTRACT_ID in your Vercel project environment
-```
+1. Open the app and choose a wallet from the StellarWalletsKit picker.
+2. Use and fund a Stellar Testnet account.
+3. Create an expense and define the split.
+4. Publish the expense on-chain (`create_expense`).
+5. Pay the selected share with native XLM.
+6. Record the confirmed payment on-chain (`record_payment`).
+7. Observe the Activity page update from contract events without a manual refresh.
 
-## Screenshots for submission
+The contract is called twice by design: the first call creates the expense record; after the separate native XLM transfer succeeds, the second call records that payment and its hash.
 
-- `screenshots/level2-wallet-options.png` — wallet picker listing multiple wallets (add after running the app)
-- `screenshots/level2-tx-status.png` — contract transaction status card
-- existing flow screenshots from Level 1 remain valid
+## Testnet notes
 
-## Main Flow
+- Testnet only; the payment asset is native XLM.
+- Expense titles and member names are public Testnet data.
+- The destination account must already exist on Testnet.
+- The contract records payments; native XLM moves in a normal Stellar payment transaction.
+- Soroban RPC retains a limited event history.
 
-1. Open the app and pick a wallet from the StellarWalletsKit picker.
-2. Use a wallet on Stellar Testnet; fund it with Friendbot if needed.
-3. Choose or create an expense and set the split.
-4. Publish the expense on-chain (contract write #1).
-5. Enter a funded Testnet destination and pay your share (XLM payment).
-6. The payment is recorded on the contract (contract write #2).
-7. The Activity page updates live from contract events.
-
-## Testnet Notes
-
-- The app uses Stellar Testnet only; the payment asset is native XLM.
-- Expense titles and member names published on-chain are public testnet data — use demo names.
-- The destination account must exist on Testnet before receiving a payment.
-- The contract only records payments; the actual XLM moves in a normal payment transaction.
-- Contract events are read from Soroban RPC (`getEvents`), which keeps a limited event history on testnet.
-
-## Tech Stack
+## Tech stack
 
 - React + Vite + TypeScript
-- `@creit.tech/stellar-wallets-kit` (multi-wallet, npm v1 line)
-- `@stellar/stellar-sdk` (Horizon + Soroban RPC)
-- Soroban contract in Rust (`contracts/splitcare`)
-- CSS: tokens, base, app styles, level2 additions
+- `@creit.tech/stellar-wallets-kit`
+- `@stellar/stellar-sdk`
+- Rust Soroban contract in `contracts/splitcare`
 
-## Project Structure
-
-```text
-contracts/
-└─ splitcare/          Soroban contract (lib.rs, tests, Cargo.toml)
-scripts/
-└─ deploy-contract.sh  Local testnet deploy helper
-.github/workflows/
-└─ deploy-contract.yml Manual GitHub Action that deploys to testnet
-src/
-├─ components/         UI cards, wallet picker, tx status, live feed
-├─ data/               Default expense presets
-├─ hooks/              Wallet (kit), split, settings, contract, events
-├─ lib/
-│  ├─ walletKit.ts     StellarWalletsKit connect/sign/network
-│  ├─ contract.ts      Soroban client: invoke, read, events, feed
-│  ├─ errors.ts        Typed app errors (wallet-not-found, rejected, …)
-│  ├─ stellar.ts       Horizon payments, Friendbot, explorer links
-│  ├─ money.ts         XLM/stroop parsing and formatting
-│  └─ split.ts         Exact percentage and stroop splitting
-├─ pages/              Landing, account, payments, activity, settings
-└─ styles/             tokens, base, app, level2
-```
-
-## Local Setup
+## Build and test
 
 ```bash
-git clone https://github.com/elithebooo/splitcare.git
-cd splitcare
-npm install        # regenerates package-lock.json with the new wallet-kit dependency
-cp .env.example .env  # set VITE_CONTRACT_ID after deploying
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:5173
-```
-
-## Build and Test
-
-```bash
+npm install
 npm run typecheck
 npm run build
-npm run contract:test     # cargo test for the Soroban contract
-npm run contract:build    # builds the contract wasm
+npm run contract:test
+npm run contract:build
 ```
 
-## Current Limitations
+## Current limitations
 
 - Testnet-only; receipts are kept in the current browser session.
-- On-chain expenses are public and kept in contract storage with a TTL (~30 days).
-- The live feed covers the recent ledger window exposed by the RPC event history.
-- The contract records payments but does not custody or move funds.
+- On-chain expenses are public and stored with a TTL.
+- The live feed covers the recent event window exposed by Soroban RPC.
+- The contract records payments but does not custody funds.

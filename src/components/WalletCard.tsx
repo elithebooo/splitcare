@@ -1,3 +1,5 @@
+import { useState } from "react"
+
 import { addressColors, formatXlm, shortenAddress } from "../lib/money"
 import { explorerAccountUrl } from "../lib/stellar"
 import type { WalletOption, WalletState } from "../types"
@@ -25,6 +27,7 @@ export function WalletCard({
 	onRefresh,
 	onFund,
 }: Props) {
+	const [pickerOpen, setPickerOpen] = useState(false)
 	const connected = wallet.status === "connected" && wallet.address
 
 	if (!connected) {
@@ -35,13 +38,26 @@ export function WalletCard({
 				</div>
 				<div className="wallet-empty">
 					<Wallet size={22} />
-					<p>Pick a Stellar wallet to connect on Testnet. Any wallet supported by StellarWalletsKit works.</p>
-					<WalletOptions
-						wallets={wallets}
-						loading={walletsLoading}
-						connectingId={connectingId}
-						onSelect={onConnect}
-					/>
+					<p>
+						Connect a Stellar wallet on Testnet to pay your share. Any wallet supported by
+						StellarWalletsKit works.
+					</p>
+					<button
+						type="button"
+						className="btn btn--primary btn--block"
+						onClick={() => setPickerOpen((open) => !open)}
+						aria-expanded={pickerOpen}
+					>
+						{pickerOpen ? "Hide wallet list" : "Connect wallet"}
+					</button>
+					{pickerOpen ? (
+						<WalletOptions
+							wallets={wallets}
+							loading={walletsLoading}
+							connectingId={connectingId}
+							onSelect={onConnect}
+						/>
+					) : null}
 					{wallet.error ? (
 						<div className="banner banner--warn">
 							<Alert size={14} />

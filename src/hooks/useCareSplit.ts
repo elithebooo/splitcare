@@ -23,6 +23,7 @@ function createMembers(count: number): Member[] {
 		name: defaultMemberName(index),
 		bp: bps[index],
 		locked: false,
+		address: "",
 	}))
 }
 
@@ -105,6 +106,7 @@ export function useCareSplit() {
 					name: defaultMemberName(current.length),
 					bp: bps[nextCount - 1],
 					locked: false,
+					address: "",
 				},
 			]
 		})
@@ -133,6 +135,7 @@ export function useCareSplit() {
 					name: defaultMemberName(current.length + i),
 					bp: 0,
 					locked: false,
+					address: "",
 				}))
 				const next = [...current, ...additions]
 				const bps = equalBps(next.length)
@@ -148,6 +151,12 @@ export function useCareSplit() {
 	const renameMember = useCallback((id: string, name: string) => {
 		setMembers((current) =>
 			current.map((member) => (member.id === id ? { ...member, name } : member)),
+		)
+	}, [])
+
+	const setMemberAddress = useCallback((id: string, address: string) => {
+		setMembers((current) =>
+			current.map((member) => (member.id === id ? { ...member, address } : member)),
 		)
 	}, [])
 
@@ -208,6 +217,7 @@ export function useCareSplit() {
 		removeMember,
 		setMemberCount,
 		renameMember,
+		setMemberAddress,
 		setMemberShare,
 		toggleLock,
 		resetToEqual,

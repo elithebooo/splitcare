@@ -6,6 +6,12 @@
 - Repository: https://github.com/elithebooo/splitcare
 - Level 2 implementation PR: https://github.com/elithebooo/splitcare/pull/1
 
+## Multi-wallet evidence
+
+![SplitCare StellarWalletsKit multi-wallet picker](./screenshots/level2-wallet-options.svg)
+
+The wallet picker displays multiple StellarWalletsKit providers and their browser availability. The captured state shows Albedo, Freighter, xBull, and HOT Wallet detected, while Rabet, LOBSTR, Hana Wallet, and Klever Wallet are listed as not installed.
+
 ## Deployed Soroban contract
 
 - Network: Stellar Testnet
@@ -31,20 +37,20 @@ A successful `create_expense` invocation against the deployed contract:
 
 The receipt also shows a separate contract-record transaction (`dd7fc9…319174`). This is expected: the app first transfers native XLM and then invokes `record_payment` to mark the share paid and associate the payment hash with the on-chain expense.
 
-## Screenshot evidence
+## Payment and contract screenshots
 
 The final Level 2 screenshots show:
 
 1. **Published expense and enabled payment:** the contract transaction card is `SUCCESS`, every lifecycle step is green, the expense is marked “Published on the SplitCare contract,” and the 15 XLM `Pay my share` action is enabled.
 2. **Confirmed payment receipt:** 15 XLM is confirmed on Stellar Testnet for “Doctor visit”; the receipt shows payer/share/total, source and destination, the payment hash, the separate contract-record hash, timestamp, and Stellar Expert links.
 
-Together these screenshots demonstrate the complete Level 2 path:
+Together the evidence demonstrates the complete Level 2 path:
 
-`create_expense` → wallet signature → Soroban confirmation → native XLM payment → `record_payment` → confirmed receipt.
+`wallet picker` → `create_expense` → wallet signature → Soroban confirmation → native XLM payment → `record_payment` → confirmed receipt.
 
 ## Requirement mapping
 
-- Multi-wallet connection: StellarWalletsKit wallet picker
+- Multi-wallet connection: StellarWalletsKit wallet picker with detected/not-installed states
 - Error handling: wallet not found, user rejection, insufficient balance, wrong network, invalid address, RPC/contract errors
 - Smart contract writes: `create_expense`, `record_payment`
 - Smart contract reads: `get_expense`, `recent_ids`

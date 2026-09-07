@@ -51,11 +51,22 @@ export function buildCreateExpenseArgs(
 	title: string,
 	shares: ShareInput[],
 ): xdr.ScVal[] {
+	// The contract takes Vec<(String, i128)>. Tuples are two-element vecs in
+	// XDR, and the i128 hint is required: nativeToScVal otherwise picks the
+	// smallest fitting unsigned int (u64), which makes the contract's argument
+	// decoding trap (HostError InvalidAction) on the real network.
 	return [
 		new Address(creator).toScVal(),
 		nativeToScVal(id, { type: "string" }),
 		nativeToScVal(title, { type: "string" }),
-		nativeToScVal(shares.map((share) => [share.name, share.amountStroops])),
+		xdr.ScVal.scvVec(
+			shares.map((share) =>
+				xdr.ScVal.scvVec([
+					nativeToScVal(share.name, { type: "string" }),
+					nativeToScVal(share.amountStroops, { type: "i128" }),
+				]),
+			),
+		),
 	]
 }
 

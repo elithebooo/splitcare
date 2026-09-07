@@ -16,9 +16,17 @@ import type { UseWallet } from "../hooks/useWallet"
 import { errorMessage as describeError } from "../lib/errors"
 import { createId } from "../lib/id"
 import { formatXlm, isAmountLike, stroopsToStellarAmount } from "../lib/money"
+import { clearPendingRecord, loadPendingRecord, savePendingRecord } from "../lib/pendingRecord"
 import { TOTAL_BP } from "../lib/split"
-import { buildPaymentXdr, describeStellarError, isValidAddress, submitSignedXdr } from "../lib/stellar"
-import type { PaymentPhase, Receipt } from "../types"
+import {
+	buildPaymentXdr,
+	describeStellarError,
+	isValidAddress,
+	submitSignedXdr,
+	verifyPaymentOnChain,
+	type PaymentVerification,
+} from "../lib/stellar"
+import type { PaymentPhase, PendingContractRecord, Receipt } from "../types"
 
 interface Props {
 	careSplit: CareSplit
@@ -34,6 +42,10 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 	const [phase, setPhase] = useState<PaymentPhase>("idle")
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
 	const [recordWarning, setRecordWarning] = useState<string | null>(null)
+	const [pendingRecord, setPendingRecord] = useState<PendingContractRecord | null>(() =>
+		loadPendingRecord(),
+	)
+	const [retryingRecord, setRetryingRecord] = useState(false)
 	const [receipts, setReceipts] = useState<Receipt[]>([])
 	const [activeReceipt, setActiveReceipt] = useState<Receipt | null>(null)
 
@@ -56,6 +68,7 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 		removeMember,
 		setMemberCount,
 		renameMember,
+		setMemberAddress,
 		setMemberShare,
 		toggleLock,
 		resetToEqual,
@@ -87,9 +100,10 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 			JSON.stringify({
 				e: selectedExpenseId,
 				t: totalInput,
-				m: members.map((member) => [member.name, member.bp]),
+				p: payerIndex,
+				m: members.map((member) => [member.name, member.bp, member.address]),
 			}),
-		[selectedExpenseId, totalInput, members],
+		[selectedExpenseId, totalInput, payerIndex, members],
 	)
 
 	const draftIdRef = useRef(createId("expense"))
@@ -107,6 +121,12 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 		contract.status.stage === "submitting" ||
 		contract.status.stage === "pending"
 
+	// Every member's share is bound to a wallet address on-chain. The payer's
+	// share automatically takes the connected wallet; the rest must be entered.
+	const memberAddressesValid = members.every(
+		(member, index) => index === payerIndex || isValidAddress(member.address.trim()),
+	)
+
 	const canPublish =
 		CONTRACT_ENABLED &&
 		walletState.status === "connected" &&
@@ -116,7 +136,8 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 		totalStroops !== null &&
 		totalStroops > 0n &&
 		allocatedBp === TOTAL_BP &&
-		members.length > 0
+		members.length > 0 &&
+		memberAddressesValid
 
 	async function handlePublish() {
 		if (!canPublish || contractBusy) return
@@ -128,6 +149,8 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 				title: selectedExpense?.title ?? "Custom expense",
 				shares: members.map((member, index) => ({
 					name: member.name.trim() || `Person ${index + 1}`,
+					address:
+						index === payerIndex ? (walletState.address as string) : member.address.trim(),
 					amountStroops: amounts[index] ?? 0n,
 				})),
 			})
@@ -158,6 +181,17 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 		if (allocatedBp !== TOTAL_BP) {
 			list.push({ id: "alloc", label: "Shares must add up to exactly 100% before paying." })
 		}
+		if (CONTRACT_ENABLED) {
+			members.forEach((member, index) => {
+				if (index === payerIndex) return
+				if (!isValidAddress(member.address.trim())) {
+					list.push({
+						id: `addr-${member.id}`,
+						label: `Enter a Testnet wallet address for ${member.name.trim() || `member ${index + 1}`} — each share is bound to a wallet on-chain.`,
+					})
+				}
+			})
+		}
 		if (!recipient) {
 			list.push({ id: "dest", label: "Enter a destination address." })
 		} else if (!isValidAddress(recipient)) {
@@ -179,7 +213,12 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 			list.push({ id: "publish", label: "Publish this expense on the Soroban contract before paying." })
 		}
 		return list
-	}, [walletState, totalStroops, allocatedBp, recipient, payerAmountStroops, published])
+	}, [walletState, totalStroops, allocatedBp, members, payerIndex, recipient, payerAmountStroops, published])
+
+	function stashPendingRecord(record: PendingContractRecord): void {
+		savePendingRecord(record)
+		setPendingRecord(record)
+	}
 
 	async function handlePay() {
 		if (blockers.length > 0 || !walletState.address) return
@@ -206,22 +245,58 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 			setPhase("anticipating")
 			await new Promise((resolve) => setTimeout(resolve, 1000))
 
-			// Level 2: record the payment on the Soroban contract.
+			// Level 2: verify the payment on Horizon, then record it on the contract.
 			let contractTxHash: string | undefined
 			if (CONTRACT_ENABLED && published && publishedId) {
-				setPhase("recording")
+				const payerAddress = walletState.address
+				let verification: PaymentVerification
 				try {
-					contractTxHash = await contract.recordPayment({
+					verification = await verifyPaymentOnChain({
+						hash,
+						source: payerAddress,
+						destination: recipient,
+						amountStroops: payerAmountStroops,
+					})
+				} catch {
+					verification = { ok: false, reason: "Could not reach Horizon to confirm the payment." }
+				}
+
+				if (!verification.ok) {
+					stashPendingRecord({
 						expenseId: publishedId,
 						memberIndex: payerIndex,
 						paymentTxHash: hash,
+						destination: recipient,
+						amountStroops: payerAmountStroops.toString(),
 					})
-					void contractEvents.refresh()
-				} catch (recordError) {
-					// The XLM payment already succeeded; recording is reported as a warning.
 					setRecordWarning(
-						describeError(recordError, "Payment succeeded, but recording it on the contract failed."),
+						`Payment succeeded, but it could not be confirmed for the contract record yet: ${verification.reason} You can retry the record below.`,
 					)
+				} else {
+					setPhase("recording")
+					try {
+						contractTxHash = await contract.recordPayment({
+							expenseId: publishedId,
+							memberIndex: payerIndex,
+							paymentTxHash: hash,
+						})
+						clearPendingRecord()
+						setPendingRecord(null)
+						void contractEvents.refresh()
+					} catch (recordError) {
+						// The XLM payment already succeeded; recording is reported as a
+						// retryable warning instead of a failed payment.
+						stashPendingRecord({
+							expenseId: publishedId,
+							memberIndex: payerIndex,
+							paymentTxHash: hash,
+							destination: recipient,
+							amountStroops: payerAmountStroops.toString(),
+						})
+						setRecordWarning(
+							`${describeError(recordError, "Payment succeeded, but recording it on the contract failed.")} The payment is safe — you can retry the contract record below.`,
+						)
+					}
 				}
 			}
 
@@ -269,6 +344,41 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 		}
 	}
 
+	async function handleRetryRecord() {
+		const pending = pendingRecord
+		if (!pending || !walletState.address || retryingRecord) return
+		setRetryingRecord(true)
+		setRecordWarning(null)
+		try {
+			const verification = await verifyPaymentOnChain({
+				hash: pending.paymentTxHash,
+				source: walletState.address,
+				destination: pending.destination,
+				amountStroops: BigInt(pending.amountStroops),
+			})
+			if (!verification.ok) {
+				setRecordWarning(
+					`The payment still cannot be confirmed on Horizon: ${verification.reason}`,
+				)
+				return
+			}
+			await contract.recordPayment({
+				expenseId: pending.expenseId,
+				memberIndex: pending.memberIndex,
+				paymentTxHash: pending.paymentTxHash,
+			})
+			clearPendingRecord()
+			setPendingRecord(null)
+			void contractEvents.refresh()
+		} catch (error) {
+			setRecordWarning(
+				describeError(error, "Recording the payment on the contract failed again."),
+			)
+		} finally {
+			setRetryingRecord(false)
+		}
+	}
+
 	function handleReset() {
 		setActiveReceipt(null)
 		setErrorMessage(null)
@@ -307,6 +417,7 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 						payerId={payer?.id ?? ""}
 						onSetPayer={setPayer}
 						onRename={renameMember}
+						onSetAddress={setMemberAddress}
 						onShareChange={setMemberShare}
 						onToggleLock={toggleLock}
 						onAddMember={addMember}
@@ -330,9 +441,22 @@ export function PaymentsPage({ careSplit, wallet, contractEvents }: Props) {
 
 					<TxStatusCard status={contract.status} title="Contract transaction" />
 
-					{recordWarning ? (
+					{recordWarning || pendingRecord ? (
 						<div className="banner banner--warn" role="status">
-							{recordWarning}
+							<span>
+								{recordWarning ??
+									"A previous payment has not been recorded on the contract yet."}
+							</span>
+							{pendingRecord ? (
+								<button
+									type="button"
+									className="linkbtn"
+									disabled={retryingRecord || contractBusy}
+									onClick={() => void handleRetryRecord()}
+								>
+									{retryingRecord ? "Retrying…" : "Retry contract record"}
+								</button>
+							) : null}
 						</div>
 					) : null}
 

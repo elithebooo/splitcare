@@ -1,0 +1,67 @@
+name: Hardening check
+
+on:
+  push:
+    branches: [hardening-v2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/splitcare
+
+      - name: Frontend checks
+        run: |
+          set +e
+          {
+            echo "=== npm install ==="
+            npm install --legacy-peer-deps --no-audit --no-fund 2>&1 | tail -n 3
+            echo "install exit: ${PIPESTATUS[0]}"
+            echo "=== typecheck ==="
+            npm run typecheck
+            echo "typecheck exit: $?"
+            echo "=== build ==="
+            npm run build 2>&1 | tail -n 8
+            echo "build exit: ${PIPESTATUS[0]}"
+          } > /tmp/frontend.log 2>&1
+          exit 0
+
+      - name: Contract tests
+        run: |
+          set +e
+          cd contracts/splitcare
+          cargo test > /tmp/contract.log 2>&1
+          echo "cargo test exit: $?" >> /tmp/contract.log
+          exit 0
+
+      - name: Comment result
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const read = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch { return ''; } };
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 1,
+              body: '🤖 **Hardening check (v2 contract + frontend)**\n\n```\n' + (read('/tmp/frontend.log') + '\n--- contract ---\n' + read('/tmp/contract.log')).slice(-8000) + '\n```',
+            });

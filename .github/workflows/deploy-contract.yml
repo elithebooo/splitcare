@@ -71,10 +71,10 @@ jobs:
         run: |
           CONTRACT_ID="${{ steps.deploy.outputs.contract_id }}"
           echo "$CONTRACT_ID" > CONTRACT_ID.txt
-          sed -i "s|TODO: deploy, then paste the contract id here|$CONTRACT_ID|" README.md || true
+          sed -i -E "s|C[A-Z2-7]{55}|$CONTRACT_ID|g" README.md LEVEL2_SUBMISSION.md || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CONTRACT_ID.txt README.md
+          git add CONTRACT_ID.txt README.md LEVEL2_SUBMISSION.md
           git commit -m "chore: record deployed testnet contract id"
           git push
 

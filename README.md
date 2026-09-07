@@ -9,7 +9,7 @@ The app:
 - splits an expense between people
 - publishes the expense to a Soroban contract (`create_expense`)
 - sends the selected share as a native XLM payment
-- records the confirmed payment on the contract (`record_payment`)
+- verifies the payment on Horizon and records it on the contract (`record_payment`)
 - streams `splitcare/created` and `splitcare/paid` events and rebuilds state live
 - displays preparing → signing → submitting → pending → success / failed / rejected
 - shows payment and contract transaction hashes with Stellar Expert links
@@ -38,6 +38,14 @@ https://splitcare-hvgs.vercel.app
 | 10+ meaningful commits | Level 2 branch/PR history |
 | Successful real Testnet evidence | See [Level 2 transaction evidence](./LEVEL2_SUBMISSION.md) |
 
+## Security properties
+
+- Each member share is bound to a wallet address at publish time; only that wallet can record its share as paid (`record_payment` requires the member's own signature and rejects any other payer).
+- The app verifies the payment on Horizon (successful transaction, correct source, destination and native XLM amount) before it is recorded on the contract.
+- A payment transaction hash can be recorded exactly once across all expenses, so one payment cannot close two different shares (replay protection).
+- Re-recording the exact same payment is a safe no-op, so if the post-payment contract call fails, the app keeps a pending record and offers a one-click retry.
+- The wallet network check is fail-closed: if the wallet cannot prove it is on Testnet, payments and contract calls stay blocked.
+
 ## Contract deployment
 
 The contract lives in `contracts/splitcare` (Rust + Soroban SDK 22).
@@ -60,13 +68,13 @@ Or run **Actions → Deploy SplitCare contract (Testnet)**. Then set `VITE_CONTR
 
 1. Open the app and choose a wallet from the StellarWalletsKit picker.
 2. Use and fund a Stellar Testnet account.
-3. Create an expense and define the split.
+3. Create an expense and define the split (each member's share is bound to a wallet address).
 4. Publish the expense on-chain (`create_expense`).
 5. Pay the selected share with native XLM.
-6. Record the confirmed payment on-chain (`record_payment`).
+6. The app verifies the payment on Horizon, then records it on-chain (`record_payment`).
 7. Observe the Activity page update from contract events without a manual refresh.
 
-The contract is called twice by design: the first call creates the expense record; after the separate native XLM transfer succeeds, the second call records that payment and its hash.
+The contract is called twice by design: the first call creates the expense record; after the separate native XLM transfer succeeds and is verified, the second call records that payment and its hash.
 
 ## Testnet notes
 
@@ -98,4 +106,4 @@ npm run contract:build
 - Testnet-only; receipts are kept in the current browser session.
 - On-chain expenses are public and stored with a TTL.
 - The live feed covers the recent event window exposed by Soroban RPC.
-- The contract records payments but does not custody funds.
+- The contract records payments but does not custody funds; payment correctness is verified via Horizon in the app (a trustless setup would move funds through the contract or a verifier service).

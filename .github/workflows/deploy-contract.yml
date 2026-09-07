@@ -2,21 +2,34 @@ name: Deploy SplitCare contract (Testnet)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-contract.yml"
+      - "contracts/**"
 
 permissions:
-  contents: read
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32v1-none
+          targets: wasm32v1-none, wasm32-unknown-unknown
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/splitcare
 
       - name: Install stellar-cli
         uses: taiki-e/install-action@v2
@@ -24,30 +37,68 @@ jobs:
           tool: stellar-cli
 
       - name: Run contract tests
-        run: cd contracts/splitcare && cargo test
+        id: test
+        run: |
+          cd contracts/splitcare
+          cargo test 2>&1 | tee /tmp/test.log
 
-      - name: Build contract
-        run: cd contracts/splitcare && stellar contract build
+      - name: Build contract wasm
+        id: build
+        run: |
+          cd contracts/splitcare
+          stellar contract build 2>&1 | tee /tmp/build.log
 
       - name: Create and fund deployer identity (testnet, Friendbot)
-        run: stellar keys generate deployer --network testnet --fund
+        id: fund
+        run: stellar keys generate deployer --network testnet --fund 2>&1 | tee /tmp/fund.log
 
       - name: Deploy to Testnet
         id: deploy
         run: |
+          set -o pipefail
           WASM_PATH="$(find . -name 'splitcare.wasm' -path '*release*' | head -n 1)"
           echo "wasm: $WASM_PATH"
-          CONTRACT_ID="$(stellar contract deploy --wasm "$WASM_PATH" --source-account deployer --network testnet)"
+          CONTRACT_ID="$(stellar contract deploy --wasm "$WASM_PATH" --source-account deployer --network testnet 2>/tmp/deploy.err | tee /tmp/deploy.log | tail -n 1)"
+          echo "raw contract id: $CONTRACT_ID"
+          if ! [[ "$CONTRACT_ID" =~ ^C[A-Z2-7]{55}$ ]]; then
+            echo "deploy did not return a valid contract id"
+            cat /tmp/deploy.err
+            exit 1
+          fi
           echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
-          {
-            echo "## SplitCare contract deployed"
-            echo ""
-            echo "- Network: Stellar Testnet"
-            echo "- Contract ID: \`$CONTRACT_ID\`"
-            echo ""
-            echo "Set \`VITE_CONTRACT_ID=$CONTRACT_ID\` in .env / Vercel env and record it in README.md."
-          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Report contract id
+      - name: Record contract id in repo
         run: |
-          echo "Deployed contract id: ${{ steps.deploy.outputs.contract_id }}"
+          CONTRACT_ID="${{ steps.deploy.outputs.contract_id }}"
+          echo "$CONTRACT_ID" > CONTRACT_ID.txt
+          sed -i "s|TODO: deploy, then paste the contract id here|$CONTRACT_ID|" README.md || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CONTRACT_ID.txt README.md
+          git commit -m "chore: record deployed testnet contract id"
+          git push
+
+      - name: Report result on the PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const tail = (p, n) => {
+              try { return fs.readFileSync(p, 'utf8').split('\n').slice(-n).join('\n'); } catch { return ''; }
+            };
+            const cid = '${{ steps.deploy.outputs.contract_id }}';
+            const chain = ['${{ steps.test.outcome }}', '${{ steps.build.outcome }}', '${{ steps.fund.outcome }}', '${{ steps.deploy.outcome }}'].join(' / ');
+            let body;
+            if (cid) {
+              body = '🤖 **SplitCare contract deployed to Testnet!**\n\nContract ID: `' + cid + '`\n\nExplorer: https://stellar.expert/explorer/testnet/contract/' + cid + '\n\nThe id has also been committed to `CONTRACT_ID.txt` and README.md on main.\nNext: set `VITE_CONTRACT_ID` in the Vercel project env and redeploy.';
+            } else {
+              const logs = [tail('/tmp/test.log', 60), tail('/tmp/build.log', 60), tail('/tmp/fund.log', 20), tail('/tmp/deploy.log', 40)].filter(Boolean).join('\n---\n');
+              body = '🤖 **Contract deploy failed** (test/build/fund/deploy: ' + chain + ')\n\n```text\n' + logs + '\n```';
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 1,
+              body,
+            });

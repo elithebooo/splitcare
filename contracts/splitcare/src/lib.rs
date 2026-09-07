@@ -24,6 +24,9 @@ const TTL_EXTEND_TO: u32 = 535_680; // ~30 days
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemberShare {
 	pub name: String,
+	/// Wallet address this share is bound to at publish time; only that wallet
+	/// may record the share as paid.
+	pub address: Address,
 	/// Owed share in stroops (1 XLM = 10_000_000 stroops).
 	pub amount: i128,
 	pub paid: bool,
@@ -51,6 +54,9 @@ enum DataKey {
 	Expense(String),
 	/// Newest-first list of expense ids, capped at RECENT_CAP.
 	Recent,
+	/// Set once a Stellar payment hash is recorded, so one payment cannot close
+	/// two different shares (replay protection).
+	UsedPaymentHash(String),
 }
 
 fn bump_ttl(env: &Env, key: &DataKey) {
@@ -71,7 +77,7 @@ impl SplitCare {
 		creator: Address,
 		id: String,
 		title: String,
-		members: Vec<(String, i128)>,
+		members: Vec<(String, Address, i128)>,
 	) -> Expense {
 		creator.require_auth();
 
@@ -87,11 +93,12 @@ impl SplitCare {
 		let mut total: i128 = 0;
 		let mut shares: Vec<MemberShare> = Vec::new(&env);
 		for entry in members.iter() {
-			let (name, amount) = entry;
+			let (name, address, amount) = entry;
 			assert!(amount > 0, "share amounts must be positive");
 			total += amount;
 			shares.push_back(MemberShare {
 				name,
+				address,
 				amount,
 				paid: false,
 				paid_by: None,
@@ -131,8 +138,10 @@ impl SplitCare {
 		expense
 	}
 
-	/// Marks one member's share as paid. The payer authorizes the call and
-	/// provides the hash of the underlying XLM payment. Emits `splitcare/paid`.
+	/// Marks one member's share as paid. The payer authorizes the call and must
+	/// be the address bound to that member at publish time. A payment hash may
+	/// only be recorded once across all expenses. Re-recording the exact same
+	/// payment is a safe no-op so clients can retry. Emits `splitcare/paid`.
 	pub fn record_payment(
 		env: Env,
 		id: String,
@@ -155,7 +164,25 @@ impl SplitCare {
 		);
 
 		let mut member = expense.members.get(member_index).expect("member not found");
-		assert!(!member.paid, "member share already paid");
+		assert!(
+			member.address == payer,
+			"payer does not match the member address"
+		);
+
+		if member.paid {
+			// Idempotent retry: the same member, payer and payment hash returns
+			// the stored state instead of failing.
+			let already_recorded =
+				member.paid_by == Some(payer.clone()) && member.tx_hash == Some(tx_hash.clone());
+			assert!(already_recorded, "member share already paid");
+			return expense;
+		}
+
+		let hash_key = DataKey::UsedPaymentHash(tx_hash.clone());
+		assert!(
+			!env.storage().persistent().has(&hash_key),
+			"payment hash already used"
+		);
 
 		member.paid = true;
 		member.paid_by = Some(payer.clone());
@@ -165,6 +192,8 @@ impl SplitCare {
 
 		env.storage().persistent().set(&key, &expense);
 		bump_ttl(&env, &key);
+		env.storage().persistent().set(&hash_key, &true);
+		bump_ttl(&env, &hash_key);
 
 		env.events().publish(
 			(symbol_short!("splitcare"), symbol_short!("paid")),

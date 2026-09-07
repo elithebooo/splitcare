@@ -32,17 +32,28 @@ jobs:
             stellar keys generate dbg --network testnet --fund
             ADDR=$(stellar keys address dbg)
             echo "caller: $ADDR"
-            echo "=== invoke create_expense ==="
+            echo "=== attempt A: tuples as JSON arrays, i128 as strings ==="
             stellar contract invoke \
               --id "$(cat CONTRACT_ID.txt)" \
               --source-account dbg \
               --network testnet \
               -- create_expense \
               --creator "$ADDR" \
-              --id "dbg-$(date +%s)" \
+              --id "dbg-a-$(date +%s)" \
               --title "Debug expense" \
-              --members '[["You", 150000000],["Bob", 150000000]]'
-            echo "invoke exit: $?"
+              --members '[["You","150000000"],["Bob","150000000"]]'
+            echo "exit A: $?"
+            echo "=== attempt B: tuples as maps ==="
+            stellar contract invoke \
+              --id "$(cat CONTRACT_ID.txt)" \
+              --source-account dbg \
+              --network testnet \
+              -- create_expense \
+              --creator "$ADDR" \
+              --id "dbg-b-$(date +%s)" \
+              --title "Debug expense" \
+              --members '[{"0":"You","1":"150000000"},{"0":"Bob","1":"150000000"}]'
+            echo "exit B: $?"
           } > /tmp/invoke.log 2>&1
           exit 0
 
@@ -58,5 +69,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 1,
-              body: '🤖 **Debug invoke result**\n\n```\n' + log.slice(-8000) + '\n```',
+              body: '🤖 **Debug invoke result v2**\n\n```\n' + log.slice(-8000) + '\n```',
             });

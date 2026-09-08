@@ -11,7 +11,11 @@ fn setup() -> (Env, SplitCareClient<'static>, Address) {
 	env.mock_all_auths();
 	let contract_id = env.register_contract(None, SplitCare);
 	let client = SplitCareClient::new(&env, &contract_id);
-	(env, client, Address::generate(&env))
+	// Bind the generated address before moving `env` into the return tuple —
+	// `(env, client, Address::generate(&env))` would move `env` first and then
+	// borrow it (E0382 borrow of moved value).
+	let admin = Address::generate(&env);
+	(env, client, admin)
 }
 
 fn member(env: &Env, name: &str, amount: i128) -> (String, Address, i128) {

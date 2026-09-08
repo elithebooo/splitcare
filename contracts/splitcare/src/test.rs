@@ -3,7 +3,7 @@
 use super::*;
 use soroban_sdk::{
 	testutils::{Address as _, Events as _},
-	vec, IntoVal, Val,
+	vec, Symbol, TryFromVal,
 };
 
 fn setup() -> (Env, SplitCareClient<'static>, Address) {
@@ -68,10 +68,14 @@ fn record_payment_marks_member_and_emits_event() {
 	assert!(!updated.members.get(0).unwrap().paid);
 
 	// The latest event must be the "paid" event on the "splitcare" topic.
+	// Note: soroban_sdk::Val has no PartialEq, so convert the topic to a Symbol
+	// before comparing instead of using == on the raw Val.
 	let all = env.events().all();
-	let (_, topics, _) = all.last().unwrap();
-	let expected_topic: Val = symbol_short!("paid").into_val(&env);
-	assert_eq!(topics.get(1).unwrap(), expected_topic);
+	let last = all.last().expect("expected at least one event");
+	let topics = last.1.clone();
+	let topic_val = topics.get(1).expect("expected a kind topic");
+	let topic_sym = Symbol::try_from_val(&env, &topic_val).expect("topic should be a symbol");
+	assert_eq!(topic_sym, symbol_short!("paid"));
 }
 
 #[test]

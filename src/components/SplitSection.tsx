@@ -10,6 +10,7 @@ interface Props {
 	payerId: string
 	onSetPayer: (id: string) => void
 	onRename: (id: string, name: string) => void
+	onSetAddress: (id: string, address: string) => void
 	onShareChange: (id: string, bp: number) => void
 	onToggleLock: (id: string) => void
 	onAddMember: () => void
@@ -29,6 +30,7 @@ export function SplitSection({
 	payerId,
 	onSetPayer,
 	onRename,
+	onSetAddress,
 	onShareChange,
 	onToggleLock,
 	onAddMember,
@@ -174,6 +176,17 @@ export function SplitSection({
 										<X size={12} />
 									</button>
 								) : null}
+								{isPayer ? null : (
+									<input
+										className="ghost-input member__address"
+										style={{ gridColumn: "1 / -1" }}
+										value={member.address}
+										onChange={(e) => onSetAddress(member.id, e.target.value)}
+										placeholder="Member Testnet wallet (G…) — bound on-chain"
+										aria-label={`Wallet address for ${member.name || "member"}`}
+										spellCheck={false}
+									/>
+								)}
 							</div>
 						)
 					})}

@@ -40,6 +40,11 @@ jobs:
         id: test
         run: |
           cd contracts/splitcare
+          # Pin transitive ed25519-dalek 3.0.0 down to 2.2.0 (3.0 broke
+          # soroban-env-host testutils via the rand_core 0.10 upgrade). The
+          # graph holds both 2.2.0 and 3.0.0, so target @3.0.0 explicitly.
+          cargo generate-lockfile
+          cargo update -p ed25519-dalek@3.0.0 --precise 2.2.0
           cargo test 2>&1 | tee /tmp/test.log
 
       - name: Build contract wasm
@@ -71,10 +76,10 @@ jobs:
         run: |
           CONTRACT_ID="${{ steps.deploy.outputs.contract_id }}"
           echo "$CONTRACT_ID" > CONTRACT_ID.txt
-          sed -i "s|TODO: deploy, then paste the contract id here|$CONTRACT_ID|" README.md || true
+          sed -i -E "s|C[A-Z2-7]{55}|$CONTRACT_ID|g" README.md LEVEL2_SUBMISSION.md || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CONTRACT_ID.txt README.md
+          git add CONTRACT_ID.txt README.md LEVEL2_SUBMISSION.md
           git commit -m "chore: record deployed testnet contract id"
           git push
 

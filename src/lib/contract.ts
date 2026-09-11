@@ -42,6 +42,8 @@ function requireContract(): Contract {
 
 export interface ShareInput {
 	name: string
+	/** Wallet address this share is bound to on-chain. */
+	address: string
 	amountStroops: bigint
 }
 
@@ -51,7 +53,7 @@ export function buildCreateExpenseArgs(
 	title: string,
 	shares: ShareInput[],
 ): xdr.ScVal[] {
-	// The contract takes Vec<(String, i128)>. Tuples are two-element vecs in
+	// The contract takes Vec<(String, Address, i128)>. Tuples are flat vecs in
 	// XDR, and the i128 hint is required: nativeToScVal otherwise picks the
 	// smallest fitting unsigned int (u64), which makes the contract's argument
 	// decoding trap (HostError InvalidAction) on the real network.
@@ -63,6 +65,7 @@ export function buildCreateExpenseArgs(
 			shares.map((share) =>
 				xdr.ScVal.scvVec([
 					nativeToScVal(share.name, { type: "string" }),
+					new Address(share.address).toScVal(),
 					nativeToScVal(share.amountStroops, { type: "i128" }),
 				]),
 			),
@@ -90,6 +93,7 @@ export function buildRecordPaymentArgs(
 
 interface RawMemberShare {
 	name: string
+	address?: string
 	amount: string | number | bigint
 	paid: boolean
 	paid_by: string | null
@@ -118,6 +122,7 @@ function toFeedExpense(raw: RawExpense, createdTxHash: string | null): FeedExpen
 		members: raw.members.map(
 			(member): FeedMember => ({
 				name: member.name,
+				address: member.address ?? null,
 				amountStroops: toBigInt(member.amount),
 				paid: Boolean(member.paid),
 				paidBy: member.paid_by ?? null,
@@ -134,6 +139,10 @@ function simulationMessage(sim: rpc.Api.SimulateTransactionResponse, fallback: s
 		if (/not found/i.test(sim.error)) return "The contract could not find that expense."
 		if (/already exists/i.test(sim.error)) return "That expense id is already published on-chain."
 		if (/already paid/i.test(sim.error)) return "That share is already marked as paid on-chain."
+		if (/already used/i.test(sim.error)) return "That payment hash is already recorded on-chain."
+		if (/does not match/i.test(sim.error)) {
+			return "This wallet is not the address bound to that share on-chain."
+		}
 		return `Contract rejected the call: ${sim.error.slice(0, 160)}`
 	}
 	return fallback
@@ -335,6 +344,7 @@ function parseContractEvent(event: rpc.Api.EventResponse): ContractEventInfo | n
 		const [id, creator, title, total, rawMembers] = data
 		const members: FeedMember[] = rawMembers.map((member) => ({
 			name: member.name,
+			address: member.address ?? null,
 			amountStroops: toBigInt(member.amount),
 			paid: Boolean(member.paid),
 			paidBy: member.paid_by ?? null,

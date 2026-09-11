@@ -134,8 +134,9 @@ export interface WalletNetworkInfo {
 }
 
 /**
- * Reads the wallet's network. Some wallets cannot report it; those are
- * treated as compatible so the demo stays usable.
+ * Reads the wallet's network. Fail-closed: if the wallet cannot report its
+ * network, we cannot prove a signature targets Testnet, so transactions stay
+ * blocked until a wallet reports Testnet explicitly.
  */
 export async function readWalletNetwork(): Promise<WalletNetworkInfo> {
 	try {
@@ -146,7 +147,7 @@ export async function readWalletNetwork(): Promise<WalletNetworkInfo> {
 				: ((result as { network?: string })?.network ?? "")
 		return { label: label || "Unknown", onTestnet: /testnet/i.test(label) }
 	} catch {
-		return { label: "Unknown", onTestnet: true }
+		return { label: "Unknown", onTestnet: false }
 	}
 }
 

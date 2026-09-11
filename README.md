@@ -50,11 +50,11 @@ https://splitcare-hvgs.vercel.app
 
 The contract lives in `contracts/splitcare` (Rust + Soroban SDK 22).
 
-- **Deployed contract address:** `CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF`
-- **Verified contract-call transaction:** `70c9b511c648cf6cd8ecf1c76a687fb92f16182b47797d9ba72356cc2e7b8859`
-- **Verified native XLM payment:** `a3b0dfc9f718c6a86ffba211fe85fd9c9068774ecc3711480f2591eb25ee7713`
+- **Deployed contract address (hardened v2):** `CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF`
+- **Verified contract-call transaction (v2 `record_payment`):** `bae1fb6996a5ccb8a61312c53d0b434b27758a23935a12fc2d042f6e74b11404`
+- **Verified native XLM payment (v2):** `a7379030a4181e94528099e32704df7b1ff3f9a392b17d3c94591be8d9e90488`
 
-Explorer links and a description of the submitted screenshots are in [`LEVEL2_SUBMISSION.md`](./LEVEL2_SUBMISSION.md).
+The earlier evidence transactions on the original v1 contract (`CC7IQC…`) remain live on Testnet. Explorer links, the v1 hashes, and the submitted screenshots are in [`LEVEL2_SUBMISSION.md`](./LEVEL2_SUBMISSION.md).
 
 Deploy locally:
 

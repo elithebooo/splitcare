@@ -50,7 +50,7 @@ https://splitcare-hvgs.vercel.app
 
 The contract lives in `contracts/splitcare` (Rust + Soroban SDK 22).
 
-- **Deployed contract address:** `CC7IQCOJVGJ6WEE2BILWVINQX2NEZRV7YNIGS4MLH2MGCX4R7CST7AMY`
+- **Deployed contract address:** `CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF`
 - **Verified contract-call transaction:** `70c9b511c648cf6cd8ecf1c76a687fb92f16182b47797d9ba72356cc2e7b8859`
 - **Verified native XLM payment:** `a3b0dfc9f718c6a86ffba211fe85fd9c9068774ecc3711480f2591eb25ee7713`
 

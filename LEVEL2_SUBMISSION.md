@@ -15,8 +15,8 @@ The wallet picker displays multiple StellarWalletsKit providers and their browse
 ## Deployed Soroban contract
 
 - Network: Stellar Testnet
-- Contract ID: `CC7IQCOJVGJ6WEE2BILWVINQX2NEZRV7YNIGS4MLH2MGCX4R7CST7AMY`
-- Contract explorer: https://stellar.expert/explorer/testnet/contract/CC7IQCOJVGJ6WEE2BILWVINQX2NEZRV7YNIGS4MLH2MGCX4R7CST7AMY
+- Contract ID: `CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF`
+- Contract explorer: https://stellar.expert/explorer/testnet/contract/CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF
 
 ## Verifiable transactions
 

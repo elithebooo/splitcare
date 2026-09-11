@@ -27,8 +27,6 @@ The original v1 contract `CC7IQCOJVGJ6WEE2BILWVINQX2NEZRV7YNIGS4MLH2MGCX4R7CST7A
 
 This end-to-end run was executed against the **current hardened v2 contract** (`CCZJVT…CVZF`).
 
-![Hardened v2 payment confirmed](./screenshots/level2-v2-payment.svg)
-
 - Expense: Medical transport — 20 XLM total, 2 people
 - Paid share: 4 XLM (20%) by the connected wallet
 - From / To: `GDR625O26DISLSL2JTFZ4GOUF7EEUCR3HNCCHXPRAPNSYFPDLFNXN76Z`
@@ -44,7 +42,7 @@ This end-to-end run was executed against the **current hardened v2 contract** (`
 - Hash: `bae1fb6996a5ccb8a61312c53d0b434b27758a23935a12fc2d042f6e74b11404`
 - Explorer: https://stellar.expert/explorer/testnet/tx/bae1fb6996a5ccb8a61312c53d0b434b27758a23935a12fc2d042f6e74b11404
 
-The screenshot shows the contract transaction lifecycle all green (`SUCCESS`) and the confirmed 4 XLM payment receipt with the payment hash and the separate contract-record hash. In this v2 run the payment was first verified on Horizon, then recorded on the hardened contract, and the member's share was bound to the connected wallet address.
+The submitted screenshot (provided alongside this submission) shows the contract transaction lifecycle all green (`SUCCESS`) and the confirmed 4 XLM payment receipt with the payment hash and the separate contract-record hash. In this v2 run the payment was first verified on Horizon, then recorded on the hardened contract, and the member's share was bound to the connected wallet address. Both transactions are independently verifiable on the explorer links above.
 
 ## Verifiable transactions (original v1 contract)
 

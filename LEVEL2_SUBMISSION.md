@@ -5,6 +5,7 @@
 - Live app: https://splitcare-hvgs.vercel.app
 - Repository: https://github.com/elithebooo/splitcare
 - Level 2 implementation PR: https://github.com/elithebooo/splitcare/pull/1
+- Hardening PR (v2 contract): https://github.com/elithebooo/splitcare/pull/2
 
 ## Multi-wallet evidence
 
@@ -15,10 +16,16 @@ The wallet picker displays multiple StellarWalletsKit providers and their browse
 ## Deployed Soroban contract
 
 - Network: Stellar Testnet
-- Contract ID: `CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF`
+- **Current contract (hardened v2):** `CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF`
 - Contract explorer: https://stellar.expert/explorer/testnet/contract/CCZJVTI6FXTX3Y72TP34RCBMGSYI7ONHAKH7ZQ7Y6REB6B44SOYKCVZF
 
+v2 hardening on top of the original Level 2 contract: each member share is bound to a wallet address at publish time (`record_payment` rejects any other payer), a payment transaction hash can be recorded exactly once across all expenses (replay protection), re-recording the exact same payment is a safe no-op so the app can retry after a failed call, and the app verifies the payment on Horizon before recording it on-chain. The live app reads the contract id from `CONTRACT_ID.txt` at build time, so it always points to the latest deployment.
+
+The original v1 contract `CC7IQCOJVGJ6WEE2BILWVINQX2NEZRV7YNIGS4MLH2MGCX4R7CST7AMY` remains live on Testnet and holds the evidence transactions below.
+
 ## Verifiable transactions
+
+These transactions were executed against the original v1 contract (`CC7IQC…`), which remains live and verifiable on Testnet:
 
 ### Contract invocation
 

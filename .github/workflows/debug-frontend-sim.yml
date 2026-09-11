@@ -39,18 +39,20 @@ jobs:
           const fr = await fetch("https://friendbot.stellar.org/?addr=" + creator);
           console.log("friendbot status:", fr.status);
 
-          const id = "jsfix-" + Date.now();
-          const title = "Fixed encoding expense";
+          const id = "jsv2-" + Date.now();
+          const title = "V2 encoding expense";
           const shares = [
-            { name: "You", amountStroops: 150000000n },
-            { name: "Bob", amountStroops: 150000000n },
+            { name: "You", address: creator, amountStroops: 150000000n },
+            { name: "Bob", address: Keypair.random().publicKey(), amountStroops: 150000000n },
           ];
 
-          // Same encoding as the fixed src/lib/contract.ts buildCreateExpenseArgs
+          // Same encoding as the v2 src/lib/contract.ts buildCreateExpenseArgs:
+          // Vec<(String, Address, i128)> — tuples are flat vecs in XDR.
           const membersVal = xdr.ScVal.scvVec(
             shares.map((s) =>
               xdr.ScVal.scvVec([
                 nativeToScVal(s.name, { type: "string" }),
+                new Address(s.address).toScVal(),
                 nativeToScVal(s.amountStroops, { type: "i128" }),
               ]),
             ),
@@ -73,7 +75,7 @@ jobs:
           const sim = await server.simulateTransaction(tx);
           console.log("isSuccess:", rpc.Api.isSimulationSuccess(sim));
           if (rpc.Api.isSimulationSuccess(sim)) {
-            console.log("SIM OK - fix verified");
+            console.log("SIM OK - v2 encoding verified against the hardened contract");
           } else {
             console.log("SIM ERROR:");
             console.log(sim.error);
@@ -96,5 +98,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 1,
-              body: '🤖 **Fixed-encoding sim result**\n\n```\n' + log.slice(-8000) + '\n```',
+              body: '🤖 **V2 frontend-encoding sim result**\n\n```\n' + log.slice(-8000) + '\n```',
             });
